@@ -11,11 +11,13 @@
 :root{--bg:#f6f4ef;--card:#fff;--ink:#2b2b2b;--sub:#777;--acc:#3b6e5a;--line:#e3dfd6}
 @media (prefers-color-scheme:dark){:root{--bg:#161a18;--card:#202522;--ink:#eee;--sub:#9aa;--acc:#7cc4a6;--line:#333a36}}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif}
 main{max-width:640px;margin:0 auto;padding:16px 16px 80px}
 h1{font-size:18px;margin:4px 0 12px;color:var(--acc)}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sub{color:var(--sub)}
 input[type=date]{font-size:16px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
 button{font-size:15px;padding:9px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
 button.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
@@ -23,80 +25,112 @@ button.danger{color:#c0392b;border-color:#c0392b}
 .moods{display:flex;gap:10px}
 .moods button{flex:1;font-size:32px;padding:10px 0}
 .moods button.on{background:var(--acc);border-color:var(--acc)}
-#weather{font-size:15px;color:var(--sub)}
-textarea{width:100%;min-height:200px;font-size:16px;line-height:1.7;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);resize:vertical}
-#photos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+textarea{width:100%;min-height:220px;font-size:16px;line-height:1.7;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);resize:vertical}
+.photos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.photos:empty{display:none}
 .ph{position:relative}
 .ph img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;display:block}
 .ph button{position:absolute;top:4px;right:4px;padding:2px 9px;font-size:16px;border-radius:50%;background:#000a;color:#fff;border:0}
+#vDate{font-size:18px;font-weight:600}
+#vWeather{margin-top:4px;color:var(--sub);font-size:15px}
+#vMood{font-size:40px;margin-top:10px}
+#vText{white-space:pre-wrap;line-height:1.9;font-size:16px;margin-top:12px}
+#vEmpty{color:var(--sub);padding:18px 0;text-align:center}
 .item{padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
 .item:last-child{border:0}
 .item small{color:var(--sub)}
 #msg{position:fixed;left:0;right:0;bottom:16px;text-align:center;pointer-events:none}
 #msg span{background:#000c;color:#fff;padding:8px 16px;border-radius:20px;font-size:14px;display:none}
+#lb{position:fixed;inset:0;background:#000e;display:flex;align-items:center;justify-content:center;z-index:10}
+#lb img{max-width:100%;max-height:100%}
 </style>
 </head>
 <body>
 <main>
 <h1>📔 マイジャーナル</h1>
 
-<div class="card">
+<!-- ========== 表示画面 ========== -->
+<section id="viewScreen">
+  <div class="card">
+    <div class="row">
+      <button id="prev">◀</button>
+      <input type="date" id="date">
+      <button id="next">▶</button>
+      <button id="today">今日</button>
+      <button id="yest">昨日</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div id="vDate"></div>
+    <div id="vEmpty">この日の日記はまだありません</div>
+    <div id="vBody">
+      <div id="vWeather"></div>
+      <div id="vMood"></div>
+      <div id="vText"></div>
+      <div id="vPhotos" class="photos"></div>
+    </div>
+    <div class="row" style="margin-top:16px">
+      <button class="pri" id="edit">✏️ 編集</button>
+      <button class="danger" id="del">🗑 削除</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sub" style="margin-bottom:8px">過去の日記</div>
+    <div id="list"></div>
+  </div>
+
+  <div class="card">
+    <div class="sub" style="margin-bottom:8px">データ（CSV）</div>
+    <div class="row">
+      <button id="exp">CSVを書き出す</button>
+      <button id="imp">CSVを読み込む</button>
+      <input type="file" id="cfile" accept=".csv,text/csv" hidden>
+    </div>
+    <div class="sub" style="font-size:13px;margin-top:8px">※写真は端末内に保存されます。Googleドライブ連携は次のステップで追加します。</div>
+  </div>
+</section>
+
+<!-- ========== 編集画面 ========== -->
+<section id="editScreen" hidden>
+  <div class="card">
+    <div id="eTitle" style="font-weight:600"></div>
+    <div id="weather" class="sub" style="margin-top:6px"></div>
+    <div class="row" style="margin-top:8px"><button id="wbtn">天気を取得し直す</button></div>
+  </div>
+
+  <div class="card">
+    <div class="sub" style="margin-bottom:8px">今日の気分</div>
+    <div class="moods">
+      <button data-m="1">😞</button><button data-m="2">😐</button><button data-m="3">😊</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <textarea id="text" placeholder="今日はどんな一日でしたか？"></textarea>
+    <div class="row" style="margin-top:10px">
+      <button id="pbtn">📷 写真を追加（0/3）</button>
+      <input type="file" id="pfile" accept="image/*" multiple hidden>
+    </div>
+    <div id="photos" class="photos"></div>
+  </div>
+
   <div class="row">
-    <button id="prev">◀</button>
-    <input type="date" id="date">
-    <button id="next">▶</button>
-    <button id="today">今日</button>
-    <button id="yest">昨日</button>
+    <button class="pri" id="done">✓ 完了</button>
   </div>
-</div>
-
-<div class="card">
-  <div id="weather">天気：未取得</div>
-  <div class="row" style="margin-top:8px"><button id="wbtn">天気を取得し直す</button></div>
-</div>
-
-<div class="card">
-  <div style="margin-bottom:8px;color:var(--sub)">今日の気分</div>
-  <div class="moods">
-    <button data-m="1">😞</button><button data-m="2">😐</button><button data-m="3">😊</button>
-  </div>
-</div>
-
-<div class="card">
-  <textarea id="text" placeholder="今日はどんな一日でしたか？"></textarea>
-  <div class="row" style="margin-top:10px">
-    <button id="pbtn">📷 写真を追加（0/3）</button>
-    <input type="file" id="pfile" accept="image/*" multiple hidden>
-  </div>
-  <div id="photos"></div>
-</div>
-
-<div class="row" style="margin-bottom:16px">
-  <button class="pri" id="save">保存</button>
-  <button class="danger" id="del">🗑 この日の日記を削除</button>
-</div>
-
-<div class="card">
-  <div style="margin-bottom:8px;color:var(--sub)">過去の日記</div>
-  <div id="list"></div>
-</div>
-
-<div class="card">
-  <div style="margin-bottom:8px;color:var(--sub)">データ（CSV）</div>
-  <div class="row">
-    <button id="exp">CSVを書き出す</button>
-    <button id="imp">CSVを読み込む</button>
-    <input type="file" id="cfile" accept=".csv,text/csv" hidden>
-  </div>
-  <div style="color:var(--sub);font-size:13px;margin-top:8px">※写真は端末内に保存されます。Googleドライブ連携は次のステップで追加します。</div>
-</div>
+  <div class="sub" style="font-size:13px;margin-top:10px">入力内容は自動で保存されます。</div>
+</section>
 </main>
+
+<div id="lb" hidden><img id="lbimg" alt=""></div>
 <div id="msg"><span></span></div>
 
 <script>
 const $=id=>document.getElementById(id);
 const WCODE={0:"快晴",1:"晴れ",2:"晴れ時々くもり",3:"くもり",45:"霧",48:"霧",51:"小雨",53:"小雨",55:"雨",56:"着氷性の雨",57:"着氷性の雨",61:"雨",63:"雨",65:"強い雨",66:"凍雨",67:"凍雨",71:"小雪",73:"雪",75:"大雪",77:"雪",80:"にわか雨",81:"にわか雨",82:"激しいにわか雨",85:"にわか雪",86:"にわか雪",95:"雷雨",96:"雷雨",99:"雷雨"};
 const WICON=c=>c<=1?"☀️":c<=3?"⛅":c<=48?"🌫️":c<=67?"🌧️":c<=77?"❄️":c<=82?"🌦️":c<=86?"🌨️":"⛈️";
+const MOODS=["","😞","😐","😊"];
 
 // ---- IndexedDB ----
 let db;
@@ -116,39 +150,76 @@ const delE=d=>tx("readwrite",s=>s.delete(d));
 const allE=()=>tx("readonly",s=>s.getAll());
 
 // ---- state ----
-let cur={date:"",mood:0,text:"",photos:[],wcode:null,wtext:"",tmax:null,tmin:null,updated:""};
+const blank=date=>({date,mood:0,text:"",photos:[],wcode:null,wtext:"",tmax:null,tmin:null,updated:""});
+let cur=blank(""), mode="view", tm, urls=[], lbUrl=null;
 const ymd=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10)};
+const fmt=d=>new Date(d+"T00:00:00").toLocaleDateString("ja-JP",{year:"numeric",month:"long",day:"numeric",weekday:"short"});
+const isEmpty=e=>!(e.text||"").trim()&&!e.mood&&!e.photos.length;
 const toast=m=>{const s=$("msg").firstElementChild;s.textContent=m;s.style.display="inline-block";setTimeout(()=>s.style.display="none",2000)};
 
-function render(){
-  $("date").value=cur.date;
-  document.querySelectorAll(".moods button").forEach(b=>b.classList.toggle("on",+b.dataset.m===cur.mood));
-  $("text").value=cur.text;
-  $("weather").textContent=cur.wcode==null?"天気：未取得":`${WICON(cur.wcode)} ${cur.wtext}　最高${Math.round(cur.tmax)}° / 最低${Math.round(cur.tmin)}°`;
-  const box=$("photos");box.innerHTML="";
+// ---- lightbox ----
+function openLb(b){lbUrl=URL.createObjectURL(b);$("lbimg").src=lbUrl;$("lb").hidden=false}
+$("lb").onclick=()=>{$("lb").hidden=true;$("lbimg").removeAttribute("src");if(lbUrl)URL.revokeObjectURL(lbUrl);lbUrl=null};
+
+// ---- render ----
+function photoGrid(box,editable){
+  box.innerHTML="";
   cur.photos.forEach((b,i)=>{
     const d=document.createElement("div");d.className="ph";
-    const u=URL.createObjectURL(b);
-    const im=document.createElement("img");im.src=u;im.onclick=()=>window.open(u);
-    const x=document.createElement("button");x.textContent="×";
-    x.onclick=()=>{cur.photos.splice(i,1);render();save(true)};
-    d.append(im,x);box.appendChild(d);
+    const u=URL.createObjectURL(b);urls.push(u);
+    const im=document.createElement("img");im.src=u;im.onclick=()=>openLb(b);
+    d.appendChild(im);
+    if(editable){
+      const x=document.createElement("button");x.textContent="×";
+      x.onclick=e=>{e.stopPropagation();cur.photos.splice(i,1);render();save(true)};
+      d.appendChild(x);
+    }
+    box.appendChild(d);
   });
-  $("pbtn").textContent=`📷 写真を追加（${cur.photos.length}/3）`;
 }
+function render(){
+  urls.forEach(u=>URL.revokeObjectURL(u));urls=[];
+  const edit=mode==="edit";
+  $("viewScreen").hidden=edit;
+  $("editScreen").hidden=!edit;
+  const wtxt=cur.wcode==null?"":`${WICON(cur.wcode)} ${cur.wtext}　最高${Math.round(cur.tmax)}° / 最低${Math.round(cur.tmin)}°`;
+  if(!edit){
+    const empty=isEmpty(cur);
+    $("date").value=cur.date;
+    $("vDate").textContent=fmt(cur.date);
+    $("vEmpty").hidden=!empty;
+    $("vBody").hidden=empty;
+    $("del").hidden=empty;
+    $("edit").textContent=empty?"✏️ 日記を書く":"✏️ 編集";
+    $("vWeather").textContent=wtxt;
+    $("vMood").textContent=MOODS[cur.mood]||"";
+    $("vMood").hidden=!cur.mood;
+    $("vText").textContent=cur.text||"";
+    $("vText").hidden=!(cur.text||"").trim();
+    photoGrid($("vPhotos"),false);
+  }else{
+    $("eTitle").textContent=fmt(cur.date)+"　編集中";
+    $("weather").textContent=cur.wcode==null?"天気：未取得":wtxt;
+    document.querySelectorAll(".moods button").forEach(b=>b.classList.toggle("on",+b.dataset.m===cur.mood));
+    photoGrid($("photos"),true);
+    $("pbtn").textContent=`📷 写真を追加（${cur.photos.length}/3）`;
+  }
+}
+
+// ---- load / save ----
 async function load(date){
   const e=await getE(date);
-  cur=e?{...e}:{date,mood:0,text:"",photos:[],wcode:null,wtext:"",tmax:null,tmin:null,updated:""};
+  cur=e?{...e}:blank(date);
   if(!cur.photos)cur.photos=cur.photo?[cur.photo]:[]; // 旧データ(1枚)を引き継ぐ
   delete cur.photo;
+  mode="view";
   render();
-  if(!e||cur.wcode==null) fetchWeather(true);
+  if(cur.wcode==null)fetchWeather(true);
 }
 async function save(silent){
-  cur.text=$("text").value;
+  if(mode==="edit")cur.text=$("text").value;
   cur.updated=new Date().toISOString();
-  const empty=!cur.text.trim()&&!cur.mood&&!cur.photos.length;
-  if(empty)await delE(cur.date); // 中身が空の日は保存しない（見ただけの日を作らない）
+  if(isEmpty(cur))await delE(cur.date); // 中身が空の日は保存しない
   else await putE(cur);
   if(!silent)toast("保存しました");
   refreshList();
@@ -158,7 +229,7 @@ async function save(silent){
 function getPos(){
   return new Promise((res,rej)=>{
     const saved=JSON.parse(localStorage.getItem("pos")||"null");
-    if(!navigator.geolocation){saved?res(saved):rej(new Error("no geo"));return}
+    if(!navigator.geolocation){saved?res(saved):res({lat:35.609,lon:139.730});return}
     navigator.geolocation.getCurrentPosition(
       p=>{const v={lat:p.coords.latitude,lon:p.coords.longitude};localStorage.setItem("pos",JSON.stringify(v));res(v)},
       ()=>saved?res(saved):res({lat:35.609,lon:139.730}), // 位置情報NGなら品川付近
@@ -166,21 +237,22 @@ function getPos(){
   });
 }
 async function fetchWeather(quiet){
+  const t=cur;
   try{
-    $("weather").textContent="天気を取得中…";
+    if(mode==="edit")$("weather").textContent="天気を取得中…";
     const {lat,lon}=await getPos();
-    const d=cur.date;
-    const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&start_date=${d}&end_date=${d}`;
+    const d=t.date;
+    const old=(Date.now()-new Date(d+"T00:00:00"))/864e5>80;
+    const base=old?"https://archive-api.open-meteo.com/v1/archive":"https://api.open-meteo.com/v1/forecast";
+    const url=`${base}?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&start_date=${d}&end_date=${d}`;
     const j=await (await fetch(url)).json();
-    cur.wcode=j.daily.weather_code[0];
-    cur.tmax=j.daily.temperature_2m_max[0];
-    cur.tmin=j.daily.temperature_2m_min[0];
-    cur.wtext=WCODE[cur.wcode]||"不明";
-    render();
-    await save(true);
+    t.wcode=j.daily.weather_code[0];
+    t.tmax=j.daily.temperature_2m_max[0];
+    t.tmin=j.daily.temperature_2m_min[0];
+    t.wtext=WCODE[t.wcode]||"不明";
+    if(cur===t){render();await save(true)}
   }catch(e){
-    render();
-    if(!quiet)toast("天気を取得できませんでした");
+    if(cur===t){render();if(!quiet)toast("天気を取得できませんでした")}
   }
 }
 
@@ -191,7 +263,7 @@ function resize(file,max=1280){
       const k=Math.min(1,max/Math.max(img.width,img.height));
       const c=document.createElement("canvas");c.width=img.width*k;c.height=img.height*k;
       c.getContext("2d").drawImage(img,0,0,c.width,c.height);
-      c.toBlob(b=>res(b),"image/jpeg",0.82);
+      c.toBlob(b=>{URL.revokeObjectURL(img.src);res(b)},"image/jpeg",0.82);
     };img.src=URL.createObjectURL(file);
   });
 }
@@ -203,10 +275,11 @@ async function refreshList(){
   if(!a.length){$("list").textContent="まだ日記がありません";return}
   a.forEach(e=>{
     const d=document.createElement("div");d.className="item";
-    const m=["","😞","😐","😊"][e.mood]||"";
+    const m=MOODS[e.mood]||"";
     const w=e.wcode==null?"":WICON(e.wcode);
     const t=(e.text||"").replace(/\n/g," ").slice(0,40);
-    d.innerHTML=`<small>${e.date} ${w} ${m}${(e.photos&&e.photos.length)||e.photo?" 📷":""}</small><div></div>`;
+    const hasPhoto=(e.photos&&e.photos.length)||e.photo;
+    d.innerHTML=`<small>${e.date} ${w} ${m}${hasPhoto?" 📷":""}</small><div></div>`;
     d.lastChild.textContent=t||"（本文なし）";
     d.onclick=()=>{load(e.date);scrollTo(0,0)};
     $("list").appendChild(d);
@@ -233,12 +306,12 @@ async function exportCSV(){
   const a=(await allE()).sort((x,y)=>x.date.localeCompare(y.date));
   const lines=[COLS.join(",")];
   a.forEach(e=>lines.push([e.date,e.mood,e.wcode,e.wtext,e.tmax,e.tmin,e.text,(e.photos||(e.photo?[e.photo]:[])).map((_,i)=>`photo_${e.date}_${i+1}.jpg`).join(";"),e.updated].map(q).join(",")));
-  const blob=new Blob(["\ufeff"+lines.join("\n")],{type:"text/csv"});
+  const blob=new Blob(["﻿"+lines.join("\n")],{type:"text/csv"});
   const u=document.createElement("a");u.href=URL.createObjectURL(blob);u.download="journal.csv";u.click();
   toast("CSVを書き出しました");
 }
 async function importCSV(file){
-  const rows=parseCSV((await file.text()).replace(/^\ufeff/,""));
+  const rows=parseCSV((await file.text()).replace(/^﻿/,""));
   const h=rows.shift();let n=0;
   for(const r of rows){
     if(!r[0])continue;
@@ -253,24 +326,31 @@ async function importCSV(file){
   toast(`${n}件を読み込みました`);refreshList();load(cur.date);
 }
 
-// ---- events ----
-document.querySelectorAll(".moods button").forEach(b=>b.onclick=()=>{cur.mood=+b.dataset.m;render();save(true)});
-$("save").onclick=()=>save();
+// ---- events: 表示画面 ----
+const shift=n=>{const d=new Date(cur.date+"T00:00:00");d.setDate(d.getDate()+n);return ymd(d)};
+$("date").onchange=e=>{if(e.target.value)load(e.target.value)};
+$("prev").onclick=()=>load(shift(-1));
+$("next").onclick=()=>load(shift(1));
+$("today").onclick=()=>load(ymd(new Date()));
+$("yest").onclick=()=>load(ymd(new Date(Date.now()-864e5)));
+$("edit").onclick=()=>{mode="edit";$("text").value=cur.text||"";render();scrollTo(0,0)};
 $("del").onclick=async()=>{
   if(!confirm(`${cur.date} の日記を削除しますか？\n（写真も一緒に消え、元に戻せません）`))return;
-  clearTimeout(tm);
   await delE(cur.date);
-  cur={date:cur.date,mood:0,text:"",photos:[],wcode:null,wtext:"",tmax:null,tmin:null,updated:""};
+  cur=blank(cur.date);
   render();refreshList();toast("削除しました");
   fetchWeather(true);
 };
+$("exp").onclick=exportCSV;
+$("imp").onclick=()=>$("cfile").click();
+$("cfile").onchange=e=>{if(e.target.files[0])importCSV(e.target.files[0]);e.target.value=""};
+
+// ---- events: 編集画面 ----
+document.querySelectorAll(".moods button").forEach(b=>b.onclick=()=>{
+  const m=+b.dataset.m;cur.mood=cur.mood===m?0:m;render();save(true);
+});
 $("wbtn").onclick=()=>fetchWeather();
-$("date").onchange=async e=>{await save(true);load(e.target.value)};
-const shift=n=>{const d=new Date(cur.date+"T00:00:00");d.setDate(d.getDate()+n);return ymd(d)};
-$("prev").onclick=async()=>{await save(true);load(shift(-1))};
-$("next").onclick=async()=>{await save(true);load(shift(1))};
-$("today").onclick=async()=>{await save(true);load(ymd(new Date()))};
-$("yest").onclick=async()=>{await save(true);load(ymd(new Date(Date.now()-864e5)))};
+$("text").oninput=()=>{clearTimeout(tm);tm=setTimeout(()=>save(true),1500)};
 $("pbtn").onclick=()=>{if(cur.photos.length>=3)return toast("写真は1日3枚までです");$("pfile").click()};
 $("pfile").onchange=async e=>{
   const fs=[...e.target.files];e.target.value="";
@@ -279,10 +359,11 @@ $("pfile").onchange=async e=>{
   for(const f of fs.slice(0,room))cur.photos.push(await resize(f));
   render();save(true);
 };
-$("exp").onclick=exportCSV;
-$("imp").onclick=()=>$("cfile").click();
-$("cfile").onchange=e=>{if(e.target.files[0])importCSV(e.target.files[0]);e.target.value=""};
-let tm;$("text").oninput=()=>{clearTimeout(tm);tm=setTimeout(()=>save(true),1500)};
+$("done").onclick=async()=>{
+  clearTimeout(tm);
+  await save(true);
+  mode="view";render();scrollTo(0,0);toast("保存しました");
+};
 
 (async()=>{
   await open();
