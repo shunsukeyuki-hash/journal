@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#3b6e5a">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<title>マイジャーナル</title>
+<style>
+:root{--bg:#f6f4ef;--card:#fff;--ink:#2b2b2b;--sub:#777;--acc:#3b6e5a;--line:#e3dfd6}
+@media (prefers-color-scheme:dark){:root{--bg:#161a18;--card:#202522;--ink:#eee;--sub:#9aa;--acc:#7cc4a6;--line:#333a36}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif}
+main{max-width:640px;margin:0 auto;padding:16px 16px 80px}
+h1{font-size:18px;margin:4px 0 12px;color:var(--acc)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+input[type=date]{font-size:16px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+button{font-size:15px;padding:9px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+button.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
+.moods{display:flex;gap:10px}
+.moods button{flex:1;font-size:32px;padding:10px 0}
+.moods button.on{background:var(--acc);border-color:var(--acc)}
+#weather{font-size:15px;color:var(--sub)}
+textarea{width:100%;min-height:200px;font-size:16px;line-height:1.7;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);resize:vertical}
+#photo{max-width:100%;border-radius:10px;margin-top:10px;display:block}
+.item{padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.item:last-child{border:0}
+.item small{color:var(--sub)}
+#msg{position:fixed;left:0;right:0;bottom:16px;text-align:center;pointer-events:none}
+#msg span{background:#000c;color:#fff;padding:8px 16px;border-radius:20px;font-size:14px;display:none}
+</style>
+</head>
+<body>
+<main>
+<h1>📔 マイジャーナル</h1>
+
+<div class="card">
+  <div class="row">
+    <button id="prev">◀</button>
+    <input type="date" id="date">
+    <button id="next">▶</button>
+    <button id="today">今日</button>
+    <button id="yest">昨日</button>
+  </div>
+</div>
+
+<div class="card">
+  <div id="weather">天気：未取得</div>
+  <div class="row" style="margin-top:8px"><button id="wbtn">天気を取得し直す</button></div>
+</div>
+
+<div class="card">
+  <div style="margin-bottom:8px;color:var(--sub)">今日の気分</div>
+  <div class="moods">
+    <button data-m="1">😞</button><button data-m="2">😐</button><button data-m="3">😊</button>
+  </div>
+</div>
+
+<div class="card">
+  <textarea id="text" placeholder="今日はどんな一日でしたか？"></textarea>
+  <div class="row" style="margin-top:10px">
+    <button id="pbtn">📷 写真を追加</button>
+    <button id="pdel">写真を削除</button>
+    <input type="file" id="pfile" accept="image/*" hidden>
+  </div>
+  <img id="photo" hidden alt="">
+</div>
+
+<div class="row" style="margin-bottom:16px">
+  <button class="pri" id="save">保存</button>
+</div>
+
+<div class="card">
+  <div style="margin-bottom:8px;color:var(--sub)">過去の日記</div>
+  <div id="list"></div>
+</div>
+
+<div class="card">
+  <div style="margin-bottom:8px;color:var(--sub)">データ（CSV）</div>
+  <div class="row">
+    <button id="exp">CSVを書き出す</button>
+    <button id="imp">CSVを読み込む</button>
+    <input type="file" id="cfile" accept=".csv,text/csv" hidden>
+  </div>
+  <div style="color:var(--sub);font-size:13px;margin-top:8px">※写真は端末内に保存されます。Googleドライブ連携は次のステップで追加します。</div>
+</div>
+</main>
+<div id="msg"><span></span></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const WCODE={0:"快晴",1:"晴れ",2:"晴れ時々くもり",3:"くもり",45:"霧",48:"霧",51:"小雨",53:"小雨",55:"雨",56:"着氷性の雨",57:"着氷性の雨",61:"雨",63:"雨",65:"強い雨",66:"凍雨",67:"凍雨",71:"小雪",73:"雪",75:"大雪",77:"雪",80:"にわか雨",81:"にわか雨",82:"激しいにわか雨",85:"にわか雪",86:"にわか雪",95:"雷雨",96:"雷雨",99:"雷雨"};
+const WICON=c=>c<=1?"☀️":c<=3?"⛅":c<=48?"🌫️":c<=67?"🌧️":c<=77?"❄️":c<=82?"🌦️":c<=86?"🌨️":"⛈️";
+
+// ---- IndexedDB ----
+let db;
+const open=()=>new Promise((res,rej)=>{
+  const r=indexedDB.open("journal",1);
+  r.onupgradeneeded=()=>{r.result.createObjectStore("entries",{keyPath:"date"})};
+  r.onsuccess=()=>{db=r.result;res()};
+  r.onerror=()=>rej(r.error);
+});
+const tx=(mode,fn)=>new Promise((res,rej)=>{
+  const t=db.transaction("entries",mode);const s=t.objectStore("entries");
+  const r=fn(s);t.oncomplete=()=>res(r&&r.result);t.onerror=()=>rej(t.error);
+});
+const getE=d=>tx("readonly",s=>s.get(d));
+const putE=e=>tx("readwrite",s=>s.put(e));
+const allE=()=>tx("readonly",s=>s.getAll());
+
+// ---- state ----
+let cur={date:"",mood:0,text:"",photo:null,wcode:null,wtext:"",tmax:null,tmin:null,updated:""};
+const ymd=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10)};
+const toast=m=>{const s=$("msg").firstElementChild;s.textContent=m;s.style.display="inline-block";setTimeout(()=>s.style.display="none",2000)};
+
+function render(){
+  $("date").value=cur.date;
+  document.querySelectorAll(".moods button").forEach(b=>b.classList.toggle("on",+b.dataset.m===cur.mood));
+  $("text").value=cur.text;
+  $("weather").textContent=cur.wcode==null?"天気：未取得":`${WICON(cur.wcode)} ${cur.wtext}　最高${Math.round(cur.tmax)}° / 最低${Math.round(cur.tmin)}°`;
+  if(cur.photo){$("photo").src=URL.createObjectURL(cur.photo);$("photo").hidden=false}else{$("photo").hidden=true}
+}
+async function load(date){
+  const e=await getE(date);
+  cur=e?{...e}:{date,mood:0,text:"",photo:null,wcode:null,wtext:"",tmax:null,tmin:null,updated:""};
+  render();
+  if(!e||cur.wcode==null) fetchWeather(true);
+}
+async function save(silent){
+  cur.text=$("text").value;
+  cur.updated=new Date().toISOString();
+  await putE(cur);
+  if(!silent)toast("保存しました");
+  refreshList();
+}
+
+// ---- weather ----
+function getPos(){
+  return new Promise((res,rej)=>{
+    const saved=JSON.parse(localStorage.getItem("pos")||"null");
+    if(!navigator.geolocation){saved?res(saved):rej(new Error("no geo"));return}
+    navigator.geolocation.getCurrentPosition(
+      p=>{const v={lat:p.coords.latitude,lon:p.coords.longitude};localStorage.setItem("pos",JSON.stringify(v));res(v)},
+      ()=>saved?res(saved):res({lat:35.609,lon:139.730}), // 位置情報NGなら品川付近
+      {timeout:8000,maximumAge:3600000});
+  });
+}
+async function fetchWeather(quiet){
+  try{
+    $("weather").textContent="天気を取得中…";
+    const {lat,lon}=await getPos();
+    const d=cur.date;
+    const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&start_date=${d}&end_date=${d}`;
+    const j=await (await fetch(url)).json();
+    cur.wcode=j.daily.weather_code[0];
+    cur.tmax=j.daily.temperature_2m_max[0];
+    cur.tmin=j.daily.temperature_2m_min[0];
+    cur.wtext=WCODE[cur.wcode]||"不明";
+    render();
+    await save(true);
+  }catch(e){
+    render();
+    if(!quiet)toast("天気を取得できませんでした");
+  }
+}
+
+// ---- photo ----
+function resize(file,max=1280){
+  return new Promise(res=>{
+    const img=new Image();img.onload=()=>{
+      const k=Math.min(1,max/Math.max(img.width,img.height));
+      const c=document.createElement("canvas");c.width=img.width*k;c.height=img.height*k;
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+      c.toBlob(b=>res(b),"image/jpeg",0.82);
+    };img.src=URL.createObjectURL(file);
+  });
+}
+
+// ---- list ----
+async function refreshList(){
+  const a=(await allE()).sort((x,y)=>y.date.localeCompare(x.date));
+  $("list").innerHTML="";
+  if(!a.length){$("list").textContent="まだ日記がありません";return}
+  a.forEach(e=>{
+    const d=document.createElement("div");d.className="item";
+    const m=["","😞","😐","😊"][e.mood]||"";
+    const w=e.wcode==null?"":WICON(e.wcode);
+    const t=(e.text||"").replace(/\n/g," ").slice(0,40);
+    d.innerHTML=`<small>${e.date} ${w} ${m}${e.photo?" 📷":""}</small><div></div>`;
+    d.lastChild.textContent=t||"（本文なし）";
+    d.onclick=()=>{load(e.date);scrollTo(0,0)};
+    $("list").appendChild(d);
+  });
+}
+
+// ---- CSV ----
+const COLS=["date","mood","weather_code","weather_text","temp_max","temp_min","text","photo_file","updated_at"];
+const q=v=>{v=v==null?"":String(v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+function parseCSV(s){
+  const rows=[];let r=[],f="",inq=false;
+  for(let i=0;i<s.length;i++){
+    const c=s[i];
+    if(inq){if(c=='"'){if(s[i+1]=='"'){f+='"';i++}else inq=false}else f+=c}
+    else if(c=='"')inq=true;
+    else if(c==","){r.push(f);f=""}
+    else if(c=="\n"){r.push(f);rows.push(r);r=[];f=""}
+    else if(c!="\r")f+=c;
+  }
+  if(f||r.length){r.push(f);rows.push(r)}
+  return rows;
+}
+async function exportCSV(){
+  const a=(await allE()).sort((x,y)=>x.date.localeCompare(y.date));
+  const lines=[COLS.join(",")];
+  a.forEach(e=>lines.push([e.date,e.mood,e.wcode,e.wtext,e.tmax,e.tmin,e.text,e.photo?`photo_${e.date}.jpg`:"",e.updated].map(q).join(",")));
+  const blob=new Blob(["\ufeff"+lines.join("\n")],{type:"text/csv"});
+  const u=document.createElement("a");u.href=URL.createObjectURL(blob);u.download="journal.csv";u.click();
+  toast("CSVを書き出しました");
+}
+async function importCSV(file){
+  const rows=parseCSV((await file.text()).replace(/^\ufeff/,""));
+  const h=rows.shift();let n=0;
+  for(const r of rows){
+    if(!r[0])continue;
+    const o=Object.fromEntries(h.map((k,i)=>[k,r[i]]));
+    const old=await getE(o.date);
+    if(old&&old.updated&&o.updated_at&&old.updated>=o.updated_at)continue; // 新しい方を優先
+    await putE({date:o.date,mood:+o.mood||0,text:o.text||"",photo:old?old.photo:null,
+      wcode:o.weather_code===""?null:+o.weather_code,wtext:o.weather_text||"",
+      tmax:o.temp_max===""?null:+o.temp_max,tmin:o.temp_min===""?null:+o.temp_min,updated:o.updated_at||""});
+    n++;
+  }
+  toast(`${n}件を読み込みました`);refreshList();load(cur.date);
+}
+
+// ---- events ----
+document.querySelectorAll(".moods button").forEach(b=>b.onclick=()=>{cur.mood=+b.dataset.m;render();save(true)});
+$("save").onclick=()=>save();
+$("wbtn").onclick=()=>fetchWeather();
+$("date").onchange=async e=>{await save(true);load(e.target.value)};
+const shift=n=>{const d=new Date(cur.date+"T00:00:00");d.setDate(d.getDate()+n);return ymd(d)};
+$("prev").onclick=async()=>{await save(true);load(shift(-1))};
+$("next").onclick=async()=>{await save(true);load(shift(1))};
+$("today").onclick=async()=>{await save(true);load(ymd(new Date()))};
+$("yest").onclick=async()=>{await save(true);load(ymd(new Date(Date.now()-864e5)))};
+$("pbtn").onclick=()=>$("pfile").click();
+$("pfile").onchange=async e=>{const f=e.target.files[0];if(!f)return;cur.photo=await resize(f);render();save(true);e.target.value=""};
+$("pdel").onclick=()=>{cur.photo=null;render();save(true)};
+$("exp").onclick=exportCSV;
+$("imp").onclick=()=>$("cfile").click();
+$("cfile").onchange=e=>{if(e.target.files[0])importCSV(e.target.files[0]);e.target.value=""};
+let tm;$("text").oninput=()=>{clearTimeout(tm);tm=setTimeout(()=>save(true),1500)};
+
+(async()=>{
+  await open();
+  await load(ymd(new Date()));
+  refreshList();
+  if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js");
+})();
+</script>
+</body>
+</html>
