@@ -24,7 +24,10 @@ button.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
 .moods button.on{background:var(--acc);border-color:var(--acc)}
 #weather{font-size:15px;color:var(--sub)}
 textarea{width:100%;min-height:200px;font-size:16px;line-height:1.7;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);resize:vertical}
-#photo{max-width:100%;border-radius:10px;margin-top:10px;display:block}
+#photos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.ph{position:relative}
+.ph img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;display:block}
+.ph button{position:absolute;top:4px;right:4px;padding:2px 9px;font-size:16px;border-radius:50%;background:#000a;color:#fff;border:0}
 .item{padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
 .item:last-child{border:0}
 .item small{color:var(--sub)}
@@ -61,11 +64,10 @@ textarea{width:100%;min-height:200px;font-size:16px;line-height:1.7;padding:10px
 <div class="card">
   <textarea id="text" placeholder="今日はどんな一日でしたか？"></textarea>
   <div class="row" style="margin-top:10px">
-    <button id="pbtn">📷 写真を追加</button>
-    <button id="pdel">写真を削除</button>
-    <input type="file" id="pfile" accept="image/*" hidden>
+    <button id="pbtn">📷 写真を追加（0/3）</button>
+    <input type="file" id="pfile" accept="image/*" multiple hidden>
   </div>
-  <img id="photo" hidden alt="">
+  <div id="photos"></div>
 </div>
 
 <div class="row" style="margin-bottom:16px">
@@ -111,7 +113,7 @@ const putE=e=>tx("readwrite",s=>s.put(e));
 const allE=()=>tx("readonly",s=>s.getAll());
 
 // ---- state ----
-let cur={date:"",mood:0,text:"",photo:null,wcode:null,wtext:"",tmax:null,tmin:null,updated:""};
+let cur={date:"",mood:0,text:"",photos:[],wcode:null,wtext:"",tmax:null,tmin:null,updated:""};
 const ymd=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10)};
 const toast=m=>{const s=$("msg").firstElementChild;s.textContent=m;s.style.display="inline-block";setTimeout(()=>s.style.display="none",2000)};
 
@@ -120,11 +122,22 @@ function render(){
   document.querySelectorAll(".moods button").forEach(b=>b.classList.toggle("on",+b.dataset.m===cur.mood));
   $("text").value=cur.text;
   $("weather").textContent=cur.wcode==null?"天気：未取得":`${WICON(cur.wcode)} ${cur.wtext}　最高${Math.round(cur.tmax)}° / 最低${Math.round(cur.tmin)}°`;
-  if(cur.photo){$("photo").src=URL.createObjectURL(cur.photo);$("photo").hidden=false}else{$("photo").hidden=true}
+  const box=$("photos");box.innerHTML="";
+  cur.photos.forEach((b,i)=>{
+    const d=document.createElement("div");d.className="ph";
+    const u=URL.createObjectURL(b);
+    const im=document.createElement("img");im.src=u;im.onclick=()=>window.open(u);
+    const x=document.createElement("button");x.textContent="×";
+    x.onclick=()=>{cur.photos.splice(i,1);render();save(true)};
+    d.append(im,x);box.appendChild(d);
+  });
+  $("pbtn").textContent=`📷 写真を追加（${cur.photos.length}/3）`;
 }
 async function load(date){
   const e=await getE(date);
-  cur=e?{...e}:{date,mood:0,text:"",photo:null,wcode:null,wtext:"",tmax:null,tmin:null,updated:""};
+  cur=e?{...e}:{date,mood:0,text:"",photos:[],wcode:null,wtext:"",tmax:null,tmin:null,updated:""};
+  if(!cur.photos)cur.photos=cur.photo?[cur.photo]:[]; // 旧データ(1枚)を引き継ぐ
+  delete cur.photo;
   render();
   if(!e||cur.wcode==null) fetchWeather(true);
 }
@@ -188,7 +201,7 @@ async function refreshList(){
     const m=["","😞","😐","😊"][e.mood]||"";
     const w=e.wcode==null?"":WICON(e.wcode);
     const t=(e.text||"").replace(/\n/g," ").slice(0,40);
-    d.innerHTML=`<small>${e.date} ${w} ${m}${e.photo?" 📷":""}</small><div></div>`;
+    d.innerHTML=`<small>${e.date} ${w} ${m}${(e.photos&&e.photos.length)||e.photo?" 📷":""}</small><div></div>`;
     d.lastChild.textContent=t||"（本文なし）";
     d.onclick=()=>{load(e.date);scrollTo(0,0)};
     $("list").appendChild(d);
@@ -214,7 +227,7 @@ function parseCSV(s){
 async function exportCSV(){
   const a=(await allE()).sort((x,y)=>x.date.localeCompare(y.date));
   const lines=[COLS.join(",")];
-  a.forEach(e=>lines.push([e.date,e.mood,e.wcode,e.wtext,e.tmax,e.tmin,e.text,e.photo?`photo_${e.date}.jpg`:"",e.updated].map(q).join(",")));
+  a.forEach(e=>lines.push([e.date,e.mood,e.wcode,e.wtext,e.tmax,e.tmin,e.text,(e.photos||(e.photo?[e.photo]:[])).map((_,i)=>`photo_${e.date}_${i+1}.jpg`).join(";"),e.updated].map(q).join(",")));
   const blob=new Blob(["\ufeff"+lines.join("\n")],{type:"text/csv"});
   const u=document.createElement("a");u.href=URL.createObjectURL(blob);u.download="journal.csv";u.click();
   toast("CSVを書き出しました");
@@ -227,7 +240,7 @@ async function importCSV(file){
     const o=Object.fromEntries(h.map((k,i)=>[k,r[i]]));
     const old=await getE(o.date);
     if(old&&old.updated&&o.updated_at&&old.updated>=o.updated_at)continue; // 新しい方を優先
-    await putE({date:o.date,mood:+o.mood||0,text:o.text||"",photo:old?old.photo:null,
+    await putE({date:o.date,mood:+o.mood||0,text:o.text||"",photos:old?(old.photos||(old.photo?[old.photo]:[])):[],
       wcode:o.weather_code===""?null:+o.weather_code,wtext:o.weather_text||"",
       tmax:o.temp_max===""?null:+o.temp_max,tmin:o.temp_min===""?null:+o.temp_min,updated:o.updated_at||""});
     n++;
@@ -245,9 +258,14 @@ $("prev").onclick=async()=>{await save(true);load(shift(-1))};
 $("next").onclick=async()=>{await save(true);load(shift(1))};
 $("today").onclick=async()=>{await save(true);load(ymd(new Date()))};
 $("yest").onclick=async()=>{await save(true);load(ymd(new Date(Date.now()-864e5)))};
-$("pbtn").onclick=()=>$("pfile").click();
-$("pfile").onchange=async e=>{const f=e.target.files[0];if(!f)return;cur.photo=await resize(f);render();save(true);e.target.value=""};
-$("pdel").onclick=()=>{cur.photo=null;render();save(true)};
+$("pbtn").onclick=()=>{if(cur.photos.length>=3)return toast("写真は1日3枚までです");$("pfile").click()};
+$("pfile").onchange=async e=>{
+  const fs=[...e.target.files];e.target.value="";
+  const room=3-cur.photos.length;
+  if(fs.length>room)toast("写真は1日3枚までです");
+  for(const f of fs.slice(0,room))cur.photos.push(await resize(f));
+  render();save(true);
+};
 $("exp").onclick=exportCSV;
 $("imp").onclick=()=>$("cfile").click();
 $("cfile").onchange=e=>{if(e.target.files[0])importCSV(e.target.files[0]);e.target.value=""};

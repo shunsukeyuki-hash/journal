@@ -1,4 +1,4 @@
-const CACHE = "journal-v1";
+const CACHE = "journal-v2";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
@@ -13,11 +13,17 @@ self.addEventListener("activate", e => {
   self.clients.claim();
 });
 
+// ネットワーク優先：オンライン時は常に最新版、オフライン時はキャッシュを使う
 self.addEventListener("fetch", e => {
   const url = new URL(e.request.url);
-  // 天気APIなど外部通信はキャッシュしない
-  if (url.origin !== location.origin) return;
+  if (url.origin !== location.origin || e.request.method !== "GET") return;
   e.respondWith(
-    caches.match(e.request).then(hit => hit || fetch(e.request))
+    fetch(e.request)
+      .then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, copy));
+        return res;
+      })
+      .catch(() => caches.match(e.request))
   );
 });
