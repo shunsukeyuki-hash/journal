@@ -19,6 +19,7 @@ h1{font-size:18px;margin:4px 0 12px;color:var(--acc)}
 input[type=date]{font-size:16px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
 button{font-size:15px;padding:9px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
 button.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
+button.danger{color:#c0392b;border-color:#c0392b}
 .moods{display:flex;gap:10px}
 .moods button{flex:1;font-size:32px;padding:10px 0}
 .moods button.on{background:var(--acc);border-color:var(--acc)}
@@ -72,6 +73,7 @@ textarea{width:100%;min-height:200px;font-size:16px;line-height:1.7;padding:10px
 
 <div class="row" style="margin-bottom:16px">
   <button class="pri" id="save">保存</button>
+  <button class="danger" id="del">🗑 この日の日記を削除</button>
 </div>
 
 <div class="card">
@@ -110,6 +112,7 @@ const tx=(mode,fn)=>new Promise((res,rej)=>{
 });
 const getE=d=>tx("readonly",s=>s.get(d));
 const putE=e=>tx("readwrite",s=>s.put(e));
+const delE=d=>tx("readwrite",s=>s.delete(d));
 const allE=()=>tx("readonly",s=>s.getAll());
 
 // ---- state ----
@@ -144,7 +147,9 @@ async function load(date){
 async function save(silent){
   cur.text=$("text").value;
   cur.updated=new Date().toISOString();
-  await putE(cur);
+  const empty=!cur.text.trim()&&!cur.mood&&!cur.photos.length;
+  if(empty)await delE(cur.date); // 中身が空の日は保存しない（見ただけの日を作らない）
+  else await putE(cur);
   if(!silent)toast("保存しました");
   refreshList();
 }
@@ -251,6 +256,14 @@ async function importCSV(file){
 // ---- events ----
 document.querySelectorAll(".moods button").forEach(b=>b.onclick=()=>{cur.mood=+b.dataset.m;render();save(true)});
 $("save").onclick=()=>save();
+$("del").onclick=async()=>{
+  if(!confirm(`${cur.date} の日記を削除しますか？\n（写真も一緒に消え、元に戻せません）`))return;
+  clearTimeout(tm);
+  await delE(cur.date);
+  cur={date:cur.date,mood:0,text:"",photos:[],wcode:null,wtext:"",tmax:null,tmin:null,updated:""};
+  render();refreshList();toast("削除しました");
+  fetchWeather(true);
+};
 $("wbtn").onclick=()=>fetchWeather();
 $("date").onchange=async e=>{await save(true);load(e.target.value)};
 const shift=n=>{const d=new Date(cur.date+"T00:00:00");d.setDate(d.getDate()+n);return ymd(d)};
