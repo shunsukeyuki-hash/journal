@@ -405,7 +405,7 @@ async function getToken(){
   await loadGsi();
   return new Promise((res,rej)=>{
     const c=google.accounts.oauth2.initTokenClient({
-      client_id:cid,scope:SCOPE,
+      client_id:cid,scope:SCOPE,include_granted_scopes:false,
       callback:r=>{
         if(r.error)return rej(new Error("ログインに失敗しました（"+r.error+"）"));
         gs.token=r.access_token;gs.exp=Date.now()+(+r.expires_in||3600)*1000;
@@ -574,7 +574,7 @@ async function getHealthToken(){
   await loadGsi();
   return new Promise((res,rej)=>{
     const c=google.accounts.oauth2.initTokenClient({
-      client_id:cid,scope:HSCOPE,
+      client_id:cid,scope:HSCOPE,include_granted_scopes:false,
       callback:r=>{
         if(r.error)return rej(new Error("ログインに失敗しました（"+r.error+"）"));
         gh.token=r.access_token;gh.exp=Date.now()+(+r.expires_in||3600)*1000;
