@@ -18,7 +18,8 @@ h1{font-size:18px;margin:4px 0 12px;color:var(--acc)}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .sub{color:var(--sub)}
-input[type=text]{width:100%;font-size:14px;padding:9px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+#vVitals{margin-top:8px;font-size:16px}
+input[type=text],input[type=number]{width:100%;font-size:14px;padding:9px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
 input[type=date]{font-size:16px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
 button{font-size:15px;padding:9px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
 button.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
@@ -68,6 +69,7 @@ textarea{width:100%;min-height:220px;font-size:16px;line-height:1.7;padding:10px
     <div id="vBody">
       <div id="vWeather"></div>
       <div id="vMood"></div>
+      <div id="vVitals"></div>
       <div id="vText"></div>
       <div id="vPhotos" class="photos"></div>
     </div>
@@ -117,6 +119,16 @@ textarea{width:100%;min-height:220px;font-size:16px;line-height:1.7;padding:10px
     <div class="moods">
       <button data-m="1">😞</button><button data-m="2">😐</button><button data-m="3">😊</button>
     </div>
+  </div>
+
+  <div class="card">
+    <div class="sub" style="margin-bottom:8px">歩数・体重</div>
+    <div class="row">
+      <input type="number" id="steps" inputmode="numeric" placeholder="歩数" style="width:42%">
+      <input type="number" id="weight" inputmode="decimal" step="0.1" placeholder="体重(kg)" style="width:42%">
+    </div>
+    <div class="row" style="margin-top:8px"><button id="hbtn">🩺 Googleヘルスから取得</button></div>
+    <div id="hstat" class="sub" style="font-size:13px;margin-top:6px;white-space:pre-wrap;word-break:break-all"></div>
   </div>
 
   <div class="card">
@@ -173,11 +185,11 @@ const delE=async d=>{
 const allE=()=>tx("readonly",s=>s.getAll());
 
 // ---- state ----
-const blank=date=>({date,mood:0,text:"",photos:[],wcode:null,wtext:"",tmax:null,tmin:null,updated:""});
+const blank=date=>({date,mood:0,text:"",photos:[],wcode:null,wtext:"",tmax:null,tmin:null,steps:null,weight:null,updated:""});
 let cur=blank(""), mode="view", tm, urls=[], lbUrl=null;
 const ymd=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10)};
 const fmt=d=>new Date(d+"T00:00:00").toLocaleDateString("ja-JP",{year:"numeric",month:"long",day:"numeric",weekday:"short"});
-const isEmpty=e=>!(e.text||"").trim()&&!e.mood&&!e.photos.length;
+const isEmpty=e=>!(e.text||"").trim()&&!e.mood&&!e.photos.length&&e.steps==null&&e.weight==null;
 const toast=m=>{const s=$("msg").firstElementChild;s.textContent=m;s.style.display="inline-block";setTimeout(()=>s.style.display="none",2000)};
 
 // ---- lightbox ----
@@ -217,6 +229,8 @@ function render(){
     $("vWeather").textContent=wtxt;
     $("vMood").textContent=MOODS[cur.mood]||"";
     $("vMood").hidden=!cur.mood;
+    const vit=[cur.steps!=null?`👣 ${Number(cur.steps).toLocaleString()}歩`:"",cur.weight!=null?`⚖️ ${cur.weight}kg`:""].filter(Boolean).join("　");
+    $("vVitals").textContent=vit;$("vVitals").hidden=!vit;
     $("vText").textContent=cur.text||"";
     $("vText").hidden=!(cur.text||"").trim();
     photoGrid($("vPhotos"),false);
@@ -240,7 +254,11 @@ async function load(date){
   if(cur.wcode==null)fetchWeather(true);
 }
 async function save(silent){
-  if(mode==="edit")cur.text=$("text").value;
+  if(mode==="edit"){
+    cur.text=$("text").value;
+    cur.steps=$("steps").value===""?null:Math.round(+$("steps").value);
+    cur.weight=$("weight").value===""?null:+$("weight").value;
+  }
   cur.updated=new Date().toISOString();
   if(isEmpty(cur))await delE(cur.date); // 中身が空の日は保存しない
   else await putE(cur);
@@ -310,7 +328,7 @@ async function refreshList(){
 }
 
 // ---- CSV ----
-const COLS=["date","mood","weather_code","weather_text","temp_max","temp_min","text","photo_file","updated_at"];
+const COLS=["date","mood","weather_code","weather_text","temp_max","temp_min","text","photo_file","updated_at","steps","weight_kg"];
 const q=v=>{v=v==null?"":String(v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
 function parseCSV(s){
   const rows=[];let r=[],f="",inq=false;
@@ -328,7 +346,7 @@ function parseCSV(s){
 async function exportCSV(){
   const a=(await allE()).sort((x,y)=>x.date.localeCompare(y.date));
   const lines=[COLS.join(",")];
-  a.forEach(e=>lines.push([e.date,e.mood,e.wcode,e.wtext,e.tmax,e.tmin,e.text,(e.photos||(e.photo?[e.photo]:[])).map((_,i)=>`photo_${e.date}_${i+1}.jpg`).join(";"),e.updated].map(q).join(",")));
+  a.forEach(e=>lines.push([e.date,e.mood,e.wcode,e.wtext,e.tmax,e.tmin,e.text,(e.photos||(e.photo?[e.photo]:[])).map((_,i)=>`photo_${e.date}_${i+1}.jpg`).join(";"),e.updated,e.steps,e.weight].map(q).join(",")));
   const blob=new Blob(["﻿"+lines.join("\n")],{type:"text/csv"});
   const u=document.createElement("a");u.href=URL.createObjectURL(blob);u.download="journal.csv";u.click();
   toast("CSVを書き出しました");
@@ -344,7 +362,7 @@ async function importCSV(file){
     if(old&&old.updated&&o.updated_at&&old.updated>=o.updated_at)continue; // 新しい方を優先
     await putE({date:o.date,mood:+o.mood||0,text:o.text||"",photos:old?(old.photos||(old.photo?[old.photo]:[])):[],
       wcode:o.weather_code===""?null:+o.weather_code,wtext:o.weather_text||"",
-      tmax:o.temp_max===""?null:+o.temp_max,tmin:o.temp_min===""?null:+o.temp_min,updated:o.updated_at||""});
+      tmax:o.temp_max===""?null:+o.temp_max,tmin:o.temp_min===""?null:+o.temp_min,steps:o.steps?+o.steps:null,weight:o.weight_kg?+o.weight_kg:null,updated:o.updated_at||""});
     n++;
   }
   toast(`${n}件を読み込みました`);refreshList();load(cur.date);
@@ -360,12 +378,13 @@ const COLS_D=[...COLS,"deleted"];
 const photoNames=e=>(e.photos||[]).map((_,i)=>`photo_${e.date}_${i+1}.jpg`);
 const rowToEntry=o=>({date:o.date,mood:+o.mood||0,text:o.text||"",photos:[],
   wcode:o.weather_code?+o.weather_code:null,wtext:o.weather_text||"",
-  tmax:o.temp_max?+o.temp_max:null,tmin:o.temp_min?+o.temp_min:null,updated:o.updated_at||""});
+  tmax:o.temp_max?+o.temp_max:null,tmin:o.temp_min?+o.temp_min:null,
+  steps:o.steps?+o.steps:null,weight:o.weight_kg?+o.weight_kg:null,updated:o.updated_at||""});
 function buildCSV(entries,tm){
   const lines=[COLS_D.join(",")];
   Object.values(entries).sort((x,y)=>x.date.localeCompare(y.date)).forEach(e=>
-    lines.push([e.date,e.mood,e.wcode,e.wtext,e.tmax,e.tmin,e.text,photoNames(e).join(";"),e.updated,""].map(q).join(",")));
-  Object.keys(tm).sort().forEach(d=>lines.push([d,"","","","","","","",tm[d],"1"].map(q).join(",")));
+    lines.push([e.date,e.mood,e.wcode,e.wtext,e.tmax,e.tmin,e.text,photoNames(e).join(";"),e.updated,e.steps,e.weight,""].map(q).join(",")));
+  Object.keys(tm).sort().forEach(d=>lines.push([d,"","","","","","","",tm[d],"","","1"].map(q).join(",")));
   return lines.join("\n");
 }
 function loadGsi(){
@@ -545,6 +564,70 @@ $("gsave").onclick=()=>{
 };
 $("gsync").onclick=()=>syncDrive();
 
+// ---- Googleヘルス（歩数・体重の取得） ----
+const HSCOPE="https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly";
+const gh={token:null,exp:0};
+async function getHealthToken(){
+  if(gh.token&&Date.now()<gh.exp-60000)return gh.token;
+  const cid=localStorage.getItem("gcid");
+  if(!cid)throw new Error("先に「Googleドライブ連携」でクライアントIDを保存してください");
+  await loadGsi();
+  return new Promise((res,rej)=>{
+    const c=google.accounts.oauth2.initTokenClient({
+      client_id:cid,scope:HSCOPE,
+      callback:r=>{
+        if(r.error)return rej(new Error("ログインに失敗しました（"+r.error+"）"));
+        gh.token=r.access_token;gh.exp=Date.now()+(+r.expires_in||3600)*1000;
+        localStorage.setItem("hconn","1");res(gh.token);
+      },
+      error_callback:()=>rej(new Error("ログインが中断されました"))
+    });
+    c.requestAccessToken({prompt:localStorage.getItem("hconn")?"":"consent"});
+  });
+}
+function pickWeightKg(j){
+  const p=j&&j.rollupDataPoints&&j.rollupDataPoints[0];
+  const w=p&&p.weight;
+  if(!w)return null;
+  const keys=Object.keys(w).filter(k=>/gram/i.test(k)&&w[k]!==""&&!isNaN(+w[k]));
+  const k=keys.find(k=>/avg|last|max/i.test(k))||keys[0];
+  return k?Math.round(+w[k]/100)/10:null; // g → kg（小数1桁）
+}
+async function fetchHealth(){
+  const st=$("hstat"),d=cur.date,t0=cur;
+  st.textContent="取得中…";
+  try{
+    const token=await getHealthToken();
+    const [Y,M,Dd]=d.split("-").map(Number);
+    const civil=(h,mi,s)=>({date:{year:Y,month:M,day:Dd},time:{hours:h,minutes:mi,seconds:s,nanos:0}});
+    const body=JSON.stringify({range:{start:civil(0,0,0),end:civil(23,59,59)},windowSizeDays:1});
+    const call=async type=>{
+      const r=await fetch(`https://health.googleapis.com/v4/users/me/dataTypes/${type}/dataPoints:dailyRollUp`,
+        {method:"POST",headers:{Authorization:"Bearer "+token,"Content-Type":"application/json"},body});
+      const txt=await r.text();
+      if(!r.ok)throw new Error(`${r.status} ${txt.slice(0,300)}`);
+      return JSON.parse(txt);
+    };
+    const [rs,rw]=await Promise.allSettled([call("steps"),call("weight")]);
+    if(cur!==t0)return;
+    const msgs=[];
+    if(rs.status==="fulfilled"){
+      const c=rs.value.rollupDataPoints&&rs.value.rollupDataPoints[0]&&rs.value.rollupDataPoints[0].steps;
+      if(c&&c.countSum!=null&&!isNaN(+c.countSum)){$("steps").value=Math.round(+c.countSum);msgs.push(`歩数 ${Math.round(+c.countSum)}`)}
+      else msgs.push("歩数：この日のデータなし\n"+JSON.stringify(rs.value).slice(0,200));
+    }else msgs.push("歩数：取得できませんでした\n"+rs.reason.message);
+    if(rw.status==="fulfilled"){
+      const kg=pickWeightKg(rw.value);
+      if(kg!=null){$("weight").value=kg;msgs.push(`体重 ${kg}kg`)}
+      else msgs.push("体重：この日のデータなし（または形式が想定外）\n"+JSON.stringify(rw.value).slice(0,300));
+    }else msgs.push("体重：取得できませんでした\n"+rw.reason.message);
+    st.textContent=msgs.join("\n");
+    await save(true);
+  }catch(e){st.textContent="取得エラー："+e.message}
+}
+$("hbtn").onclick=fetchHealth;
+["steps","weight"].forEach(id=>{$(id).oninput=()=>{clearTimeout(tm);tm=setTimeout(()=>save(true),1500)}});
+
 // ---- events: 表示画面 ----
 const shift=n=>{const d=new Date(cur.date+"T00:00:00");d.setDate(d.getDate()+n);return ymd(d)};
 $("date").onchange=e=>{if(e.target.value)load(e.target.value)};
@@ -552,7 +635,7 @@ $("prev").onclick=()=>load(shift(-1));
 $("next").onclick=()=>load(shift(1));
 $("today").onclick=()=>load(ymd(new Date()));
 $("yest").onclick=()=>load(ymd(new Date(Date.now()-864e5)));
-$("edit").onclick=()=>{if(syncing)return toast("同期中です。少しお待ちください");mode="edit";$("text").value=cur.text||"";render();scrollTo(0,0)};
+$("edit").onclick=()=>{if(syncing)return toast("同期中です。少しお待ちください");mode="edit";$("text").value=cur.text||"";$("steps").value=cur.steps==null?"":cur.steps;$("weight").value=cur.weight==null?"":cur.weight;$("hstat").textContent="";render();scrollTo(0,0)};
 $("del").onclick=async()=>{
   if(!confirm(`${cur.date} の日記を削除しますか？\n（写真も一緒に消え、元に戻せません）`))return;
   await delE(cur.date);
