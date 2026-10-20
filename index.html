@@ -89,6 +89,7 @@ textarea{width:100%;min-height:220px;font-size:16px;line-height:1.7;padding:10px
       <input type="file" id="cfile" accept=".csv,text/csv" hidden>
     </div>
     <div class="sub" style="font-size:13px;margin-top:8px">※写真は端末内に保存されます。Googleドライブ連携は次のステップで追加します。</div>
+    <div id="pstat" class="sub" style="font-size:13px;margin-top:4px"></div>
   </div>
 </section>
 
@@ -365,8 +366,20 @@ $("done").onclick=async()=>{
   mode="view";render();scrollTo(0,0);toast("保存しました");
 };
 
+// ---- 永続ストレージ（ブラウザによる自動削除を防ぐ） ----
+async function protectStorage(){
+  const el=$("pstat");
+  if(!(navigator.storage&&navigator.storage.persist)){el.textContent="データ保護：この環境では非対応";return}
+  try{
+    let ok=await navigator.storage.persisted();
+    if(!ok)ok=await navigator.storage.persist();
+    el.textContent=ok?"🔒 データ保護：有効（ブラウザに自動削除されません）":"データ保護：未許可（ホーム画面に追加して使うと許可されやすくなります）";
+  }catch(e){el.textContent="データ保護：確認できませんでした"}
+}
+
 (async()=>{
   await open();
+  protectStorage();
   await load(ymd(new Date()));
   refreshList();
   if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js");
