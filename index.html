@@ -7,6 +7,7 @@
 <script>try{if(localStorage.getItem("theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
 <title>マイジャーナル</title>
 <style>
 :root{--bg:#f4f4f0;--card:#fcfcfa;--ink:#333536;--sub:#6b706c;--acc:#4a7c5c;--soft:#e4ede6;--line:#dcdcd5}
@@ -171,7 +172,7 @@ textarea{width:100%;min-height:220px;font-size:16px;line-height:1.7;padding:10px
 <!-- ========== 編集画面 ========== -->
 <section id="editScreen" hidden>
   <div class="card">
-    <div id="eTitle" style="font-weight:600"></div>
+    <div class="row"><b id="eTitle">✏️ 日付</b><input type="date" id="eDate"></div>
     <div id="weather" class="sub" style="margin-top:6px"></div>
     <div class="row" style="margin-top:8px"><button id="wbtn">天気を取得し直す</button></div>
   </div>
@@ -213,7 +214,7 @@ textarea{width:100%;min-height:220px;font-size:16px;line-height:1.7;padding:10px
 <div id="drawerBg" hidden></div>
 <nav id="drawer" hidden>
   <div class="mt">メニュー</div>
-  <button class="mi" id="mAdd">✏️ 日記を追加（今日）</button>
+  <button class="mi" id="mAdd">✏️ 今日の日記を書く</button>
   <button class="mi" id="mHome">🏠 週・月まとめ</button>
   <button class="mi" id="mCal">📅 カレンダー・日別</button>
   <button class="mi" id="mSync">☁️ 今すぐ同期</button>
@@ -417,7 +418,7 @@ function render(){
     photoGrid($("vPhotos"),false);
     renderCal();
   }else{
-    $("eTitle").textContent=fmt(cur.date)+"　編集中";
+    $("eDate").value=cur.date;$("eDate").max=ymd(new Date());
     $("weather").textContent=cur.wcode==null?"天気：未取得":wtxt;
     document.querySelectorAll(".moods button").forEach(b=>b.classList.toggle("on",+b.dataset.m===cur.mood));
     photoGrid($("photos"),true);
@@ -866,6 +867,30 @@ document.querySelectorAll(".moods button").forEach(b=>b.onclick=()=>{
   const m=+b.dataset.m;cur.mood=cur.mood===m?0:m;render();save(true);
 });
 $("wbtn").onclick=()=>fetchWeather();
+$("eDate").onchange=async e=>{
+  const nd=e.target.value, od=cur.date;
+  if(!nd||nd===od){e.target.value=od;return}
+  clearTimeout(tm);
+  cur.text=$("text").value;
+  cur.steps=$("steps").value===""?null:Math.round(+$("steps").value);
+  cur.weight=$("weight").value===""?null:+$("weight").value;
+  const target=await getE(nd);
+  if(isEmpty(cur)){                       // まだ何も書いていない → その日の日記へ切り替え
+    await save(true);
+    await load(nd);
+    $("edit").click();
+  }else if(!target){                      // 書きかけ → 日付を付け替える（移動）
+    await delE(od);
+    cur.date=nd;cur.wcode=null;cur.wtext="";cur.tmax=null;cur.tmin=null;
+    await save(true);
+    render();
+    fetchWeather(true);
+    toast("日付を変更しました");
+  }else{                                  // 移動先にすでに日記がある
+    e.target.value=od;
+    toast("その日にはすでに日記があります");
+  }
+};
 $("text").oninput=()=>{clearTimeout(tm);tm=setTimeout(()=>save(true),1500)};
 $("pbtn").onclick=()=>{if(cur.photos.length>=3)return toast("写真は1日3枚までです");$("pfile").click()};
 $("pfile").onchange=async e=>{
