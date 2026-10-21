@@ -4,11 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#f4f4f0">
+<script>try{if(localStorage.getItem("theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <title>マイジャーナル</title>
 <style>
 :root{--bg:#f4f4f0;--card:#fcfcfa;--ink:#333536;--sub:#6b706c;--acc:#4a7c5c;--soft:#e4ede6;--line:#dcdcd5}
+:root[data-theme="dark"]{--bg:#161a18;--card:#1f2421;--ink:#e4e7e4;--sub:#9aa39d;--acc:#7fb892;--soft:#263229;--line:#333a36;color-scheme:dark}
+[data-theme="dark"] .card{box-shadow:none}
+[data-theme="dark"] button.pri,[data-theme="dark"] .cd.sel,[data-theme="dark"] .cd.sel .n{color:#10201a}
+[data-theme="dark"] button.danger{color:#e0958d;border-color:#7a4a45}
+[data-theme="dark"] .cw.sun,[data-theme="dark"] .cd.sun .n{color:#d39088}
+[data-theme="dark"] .cw.sat,[data-theme="dark"] .cd.sat .n{color:#8fb5a3}
+[data-theme="dark"] .cd.sel .n{color:#10201a}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif}
@@ -207,6 +215,7 @@ textarea{width:100%;min-height:220px;font-size:16px;line-height:1.7;padding:10px
   <button class="mi" id="mCal">📅 カレンダー・日別</button>
   <button class="mi" id="mSync">☁️ 今すぐ同期</button>
   <button class="mi" id="mSet">⚙️ 設定・データ（CSV）</button>
+  <button class="mi" id="mTheme">🌙 ダークモードに切り替え</button>
 </nav>
 
 <div id="lb" hidden><img id="lbimg" alt=""></div>
@@ -813,6 +822,15 @@ $("mCal").onclick=async()=>{menu(false);await load(cur.date||ymd(new Date()));sc
 $("mAdd").onclick=async()=>{menu(false);await load(ymd(new Date()));$("edit").click()};
 $("mSync").onclick=()=>{menu(false);syncDrive()};
 $("mSet").onclick=()=>{menu(false);mode="set";render();scrollTo(0,0)};
+function applyTheme(t,save){
+  document.documentElement.dataset.theme=t;
+  const m=document.querySelector('meta[name="theme-color"]');
+  if(m)m.content=t==="dark"?"#161a18":"#f4f4f0";
+  $("mTheme").textContent=t==="dark"?"☀️ ライトモードに切り替え":"🌙 ダークモードに切り替え";
+  if(save){try{localStorage.setItem("theme",t)}catch(e){}}
+}
+$("mTheme").onclick=()=>applyTheme(document.documentElement.dataset.theme==="dark"?"light":"dark",true);
+applyTheme(document.documentElement.dataset.theme==="dark"?"dark":"light",false);
 $("uweek").onclick=()=>{sumUnit="week";render()};
 $("umonth").onclick=()=>{sumUnit="month";render()};
 $("sprev").onclick=()=>{sumShift(-1);render()};
