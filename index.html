@@ -3,13 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#3b6e5a">
+<meta name="theme-color" content="#f4f4f0">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <title>マイジャーナル</title>
 <style>
-:root{--bg:#f6f4ef;--card:#fff;--ink:#2b2b2b;--sub:#777;--acc:#3b6e5a;--line:#e3dfd6}
-@media (prefers-color-scheme:dark){:root{--bg:#161a18;--card:#202522;--ink:#eee;--sub:#9aa;--acc:#7cc4a6;--line:#333a36}}
+:root{--bg:#f4f4f0;--card:#fcfcfa;--ink:#333536;--sub:#6b706c;--acc:#4a7c5c;--soft:#e4ede6;--line:#dcdcd5}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif}
@@ -22,7 +21,7 @@ main{padding-top:14px}
 @keyframes slide{from{transform:translateX(100%)}to{transform:none}}
 #drawer .mt{font-weight:600;color:var(--acc);padding:4px 8px 12px}
 .mi{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:transparent;padding:14px 8px;font-size:16px;border-radius:8px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 1px 2px #0000000a}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .sub{color:var(--sub)}
 #vVitals{margin-top:8px;font-size:16px}
@@ -30,10 +29,10 @@ input[type=text],input[type=number]{width:100%;font-size:14px;padding:9px;border
 input[type=date]{font-size:16px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
 button{font-size:15px;padding:9px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
 button.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
-button.danger{color:#c0392b;border-color:#c0392b}
+button.danger{color:#a8483f;border-color:#c9a29d}
 .moods{display:flex;gap:10px}
 .moods button{flex:1;font-size:32px;padding:10px 0}
-.moods button.on{background:var(--acc);border-color:var(--acc)}
+.moods button.on{background:var(--soft);border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
 textarea{width:100%;min-height:220px;font-size:16px;line-height:1.7;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);resize:vertical}
 .photos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
 .photos:empty{display:none}
@@ -42,12 +41,12 @@ textarea{width:100%;min-height:220px;font-size:16px;line-height:1.7;padding:10px
 .ph button{position:absolute;top:4px;right:4px;padding:2px 9px;font-size:16px;border-radius:50%;background:#000a;color:#fff;border:0}
 #calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px}
 .cw{text-align:center;font-size:12px;color:var(--sub);padding:2px 0}
-.cw.sun,.cd.sun .n{color:#d9534f}
-.cw.sat,.cd.sat .n{color:#4a7fc1}
+.cw.sun,.cd.sun .n{color:#a0625a}
+.cw.sat,.cd.sat .n{color:#5f8070}
 .cd{aspect-ratio:1;padding:0;border:1px solid transparent;border-radius:10px;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;line-height:1.1}
 .cd .n{font-size:13px}
 .cd .m{font-size:18px;min-height:20px}
-.cd.has{background:var(--bg)}
+.cd.has{background:var(--soft)}
 .cd.today{border-color:var(--acc)}
 .cd.sel{background:var(--acc);color:#fff}
 .cd.sel .n{color:#fff}
