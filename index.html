@@ -17,6 +17,8 @@
 [data-theme="dark"] .cw.sun,[data-theme="dark"] .cd.sun .n{color:#d39088}
 [data-theme="dark"] .cw.sat,[data-theme="dark"] .cd.sat .n{color:#8fb5a3}
 [data-theme="dark"] .cd.sel .n{color:#10201a}
+#fab{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom));width:56px;height:56px;padding:0;border-radius:50%;border:0;background:var(--acc);color:#fff;font-size:32px;line-height:1;box-shadow:0 3px 10px #0004;z-index:4}
+[data-theme="dark"] #fab{color:#10201a}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif}
@@ -207,6 +209,7 @@ textarea{width:100%;min-height:220px;font-size:16px;line-height:1.7;padding:10px
 </section>
 </main>
 
+<button id="fab" aria-label="日記を追加">＋</button>
 <div id="drawerBg" hidden></div>
 <nav id="drawer" hidden>
   <div class="mt">メニュー</div>
@@ -392,6 +395,7 @@ function render(){
   $("sumScreen").hidden=!sum;
   $("setScreen").hidden=mode!=="set";
   $("menuBtn").hidden=edit;
+  $("fab").hidden=edit;
   if(sum){renderSum();return}
   if(mode==="set")return;
   const wtxt=cur.wcode==null?"":`${WICON(cur.wcode)} ${cur.wtext}　最高${Math.round(cur.tmax)}° / 最低${Math.round(cur.tmin)}°`;
@@ -819,7 +823,9 @@ $("menuBtn").onclick=()=>menu(true);
 $("drawerBg").onclick=()=>menu(false);
 $("mHome").onclick=()=>{menu(false);goHome()};
 $("mCal").onclick=async()=>{menu(false);await load(cur.date||ymd(new Date()));scrollTo(0,0)};
-$("mAdd").onclick=async()=>{menu(false);await load(ymd(new Date()));$("edit").click()};
+const addToday=async()=>{menu(false);await load(ymd(new Date()));$("edit").click()};
+$("mAdd").onclick=addToday;
+$("fab").onclick=addToday;
 $("mSync").onclick=()=>{menu(false);syncDrive()};
 $("mSet").onclick=()=>{menu(false);mode="set";render();scrollTo(0,0)};
 function applyTheme(t,save){
