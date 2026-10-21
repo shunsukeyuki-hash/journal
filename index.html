@@ -203,7 +203,7 @@ textarea{width:100%;min-height:220px;font-size:16px;line-height:1.7;padding:10px
     <div id="photos" class="photos"></div>
   </div>
 
-  <div class="row">
+  <div class="row" style="justify-content:flex-end">
     <button class="pri" id="done">✓ 完了</button>
   </div>
   <div class="sub" style="font-size:13px;margin-top:10px">入力内容は自動で保存されます。</div>
@@ -304,6 +304,7 @@ const calShift=n=>{
 
 // ---- まとめ（週・月） ----
 let sumUnit="week", sumRef="", sumTok=0;
+let backToSum=false, sumScroll=0, pendingScroll=null;
 const WD=["日","月","火","水","木","金","土"];
 function sumRange(){
   const d=new Date(sumRef+"T00:00:00");
@@ -368,8 +369,19 @@ async function renderSum(){
       });
       c.appendChild(g);
     }
+    const row=document.createElement("div");
+    row.className="row";row.style.cssText="margin-top:12px;justify-content:flex-end";
+    const eb=document.createElement("button");eb.textContent="✏️ 編集";
+    eb.onclick=async()=>{
+      sumScroll=scrollY;
+      await load(x.date);
+      $("edit").click();
+      if(mode==="edit")backToSum=true;   // 完了したら一覧に戻る
+    };
+    row.appendChild(eb);c.appendChild(row);
     box.appendChild(c);
   });
+  if(pendingScroll!=null){scrollTo(0,pendingScroll);pendingScroll=null}
 }
 
 // ---- render ----
@@ -827,6 +839,7 @@ $("mCal").onclick=async()=>{menu(false);await load(cur.date||ymd(new Date()));sc
 const addToday=async()=>{menu(false);await load(ymd(new Date()));$("edit").click()};
 $("mAdd").onclick=addToday;
 $("fab").onclick=addToday;
+$("edit").addEventListener("click",()=>{backToSum=false});
 $("mSync").onclick=()=>{menu(false);syncDrive()};
 $("mSet").onclick=()=>{menu(false);mode="set";render();scrollTo(0,0)};
 function applyTheme(t,save){
@@ -903,7 +916,12 @@ $("pfile").onchange=async e=>{
 $("done").onclick=async()=>{
   clearTimeout(tm);
   await save(true);
-  mode="view";render();scrollTo(0,0);toast("保存しました");
+  const back=backToSum;backToSum=false;
+  mode=back?"sum":"view";
+  if(back)pendingScroll=sumScroll;
+  render();
+  if(!back)scrollTo(0,0);
+  toast("保存しました");
   autoSync();
 };
 
