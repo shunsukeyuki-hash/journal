@@ -14,7 +14,14 @@
 [hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif}
 main{max-width:640px;margin:0 auto;padding:16px 16px 80px}
-h1{font-size:18px;margin:4px 0 12px;color:var(--acc)}
+#top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:6px 16px;font-size:18px;font-weight:600;color:var(--acc)}
+#top button{font-size:22px;padding:4px 12px;color:var(--ink)}
+main{padding-top:14px}
+#drawerBg{position:fixed;inset:0;background:#0007;z-index:20}
+#drawer{position:fixed;top:0;right:0;bottom:0;width:78%;max-width:300px;background:var(--card);z-index:21;padding:16px 12px;overflow-y:auto;box-shadow:-4px 0 16px #0004;animation:slide .15s ease-out}
+@keyframes slide{from{transform:translateX(100%)}to{transform:none}}
+#drawer .mt{font-weight:600;color:var(--acc);padding:4px 8px 12px}
+.mi{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:transparent;padding:14px 8px;font-size:16px;border-radius:8px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .sub{color:var(--sub)}
@@ -62,8 +69,8 @@ textarea{width:100%;min-height:220px;font-size:16px;line-height:1.7;padding:10px
 </style>
 </head>
 <body>
+<header id="top"><span>📔 マイジャーナル</span><button id="menuBtn" aria-label="メニュー">☰</button></header>
 <main>
-<h1>📔 マイジャーナル</h1>
 
 <!-- ========== 表示画面 ========== -->
 <section id="viewScreen">
@@ -75,7 +82,6 @@ textarea{width:100%;min-height:220px;font-size:16px;line-height:1.7;padding:10px
       <button id="today">今日</button>
       <button id="yest">昨日</button>
     </div>
-    <div class="row" style="margin-top:8px"><button id="sumbtn">📖 週・月でまとめて見る</button></div>
   </div>
 
   <div class="card">
@@ -108,6 +114,12 @@ textarea{width:100%;min-height:220px;font-size:16px;line-height:1.7;padding:10px
     <div id="list"></div>
   </div>
 
+</section>
+
+<!-- ========== 設定画面 ========== -->
+<section id="setScreen" hidden>
+  <div class="card"><b>⚙️ 設定・データ</b></div>
+
   <div class="card">
     <div class="sub" style="margin-bottom:8px">☁️ Googleドライブ連携</div>
     <input type="text" id="cid" placeholder="クライアントID（…apps.googleusercontent.com）" autocomplete="off">
@@ -134,7 +146,6 @@ textarea{width:100%;min-height:220px;font-size:16px;line-height:1.7;padding:10px
 <section id="sumScreen" hidden>
   <div class="card">
     <div class="row">
-      <button id="sback">← 戻る</button>
       <button id="uweek">週</button>
       <button id="umonth">月</button>
     </div>
@@ -189,6 +200,16 @@ textarea{width:100%;min-height:220px;font-size:16px;line-height:1.7;padding:10px
 </section>
 </main>
 
+<div id="drawerBg" hidden></div>
+<nav id="drawer" hidden>
+  <div class="mt">メニュー</div>
+  <button class="mi" id="mAdd">✏️ 日記を追加（今日）</button>
+  <button class="mi" id="mHome">🏠 週・月まとめ</button>
+  <button class="mi" id="mCal">📅 カレンダー・日別</button>
+  <button class="mi" id="mSync">☁️ 今すぐ同期</button>
+  <button class="mi" id="mSet">⚙️ 設定・データ（CSV）</button>
+</nav>
+
 <div id="lb" hidden><img id="lbimg" alt=""></div>
 <div id="msg"><span></span></div>
 
@@ -233,7 +254,7 @@ let entryMap={}, calYM=new Date(Date.now()+9*3600e3).toISOString().slice(0,7);
 const ymd=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10)};
 const fmt=d=>new Date(d+"T00:00:00").toLocaleDateString("ja-JP",{year:"numeric",month:"long",day:"numeric",weekday:"short"});
 const isEmpty=e=>!(e.text||"").trim()&&!e.mood&&!e.photos.length&&e.steps==null&&e.weight==null;
-const toast=m=>{const s=$("msg").firstElementChild;s.textContent=m;s.style.display="inline-block";setTimeout(()=>s.style.display="none",2000)};
+const toast=m=>{const s=$("msg").firstElementChild;s.textContent=m;s.style.display="inline-block";setTimeout(()=>s.style.display="none",Math.min(7000,1800+m.length*80))};
 
 // ---- lightbox ----
 function openLb(b){lbUrl=URL.createObjectURL(b);$("lbimg").src=lbUrl;$("lb").hidden=false}
@@ -358,10 +379,13 @@ function photoGrid(box,editable){
 function render(){
   urls.forEach(u=>URL.revokeObjectURL(u));urls=[];
   const edit=mode==="edit", sum=mode==="sum";
-  $("viewScreen").hidden=edit||sum;
+  $("viewScreen").hidden=mode!=="view";
   $("editScreen").hidden=!edit;
   $("sumScreen").hidden=!sum;
+  $("setScreen").hidden=mode!=="set";
+  $("menuBtn").hidden=edit;
   if(sum){renderSum();return}
+  if(mode==="set")return;
   const wtxt=cur.wcode==null?"":`${WICON(cur.wcode)} ${cur.wtext}　最高${Math.round(cur.tmax)}° / 最低${Math.round(cur.tmin)}°`;
   if(!edit){
     const empty=isEmpty(cur);
@@ -629,8 +653,9 @@ function showLast(up,down){
   $("gstat").textContent=iso?`最終同期：${new Date(iso).toLocaleString("ja-JP")}`+(up||down?`（↑${up}件 ↓${down}件）`:""):"未同期";
 }
 async function syncDrive(silent){
-  if(syncing||mode!=="view")return;
+  if(syncing||mode==="edit")return;
   syncing=true;
+  if(!silent)toast("同期を開始しました");
   const say=m=>{$("gstat").textContent=m};
   try{
     say("同期中…ログイン");
@@ -693,10 +718,11 @@ async function syncDrive(silent){
     showLast(up,down);
     refreshList();
     if(mode==="view")await load(cur.date);
+    else if(mode==="sum")render();
     if(!silent)toast("同期しました");
   }catch(e){
     say("同期エラー："+e.message);
-    if(!silent)toast("同期できませんでした");
+    if(!silent)toast("同期できませんでした："+e.message);
   }finally{syncing=false}
 }
 const autoSync=()=>{if(gs.token&&Date.now()<gs.exp-60000)syncDrive(true)};
@@ -779,8 +805,15 @@ $("hbtn").onclick=fetchHealth;
 
 // ---- events: 表示画面 ----
 const shift=n=>{const d=new Date(cur.date+"T00:00:00");d.setDate(d.getDate()+n);return ymd(d)};
-$("sumbtn").onclick=()=>{sumRef=cur.date;mode="sum";render();scrollTo(0,0)};
-$("sback").onclick=()=>{mode="view";render();scrollTo(0,0)};
+const menu=o=>{$("drawerBg").hidden=!o;$("drawer").hidden=!o};
+const goHome=()=>{sumRef=ymd(new Date());sumUnit="week";mode="sum";render();scrollTo(0,0)};
+$("menuBtn").onclick=()=>menu(true);
+$("drawerBg").onclick=()=>menu(false);
+$("mHome").onclick=()=>{menu(false);goHome()};
+$("mCal").onclick=async()=>{menu(false);await load(cur.date||ymd(new Date()));scrollTo(0,0)};
+$("mAdd").onclick=async()=>{menu(false);await load(ymd(new Date()));$("edit").click()};
+$("mSync").onclick=()=>{menu(false);syncDrive()};
+$("mSet").onclick=()=>{menu(false);mode="set";render();scrollTo(0,0)};
 $("uweek").onclick=()=>{sumUnit="week";render()};
 $("umonth").onclick=()=>{sumUnit="month";render()};
 $("sprev").onclick=()=>{sumShift(-1);render()};
@@ -843,6 +876,7 @@ async function protectStorage(){
   initDriveUI();
   await load(ymd(new Date()));
   refreshList();
+  goHome();
   if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js");
 })();
 </script>
