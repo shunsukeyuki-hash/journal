@@ -33,6 +33,17 @@ textarea{width:100%;min-height:220px;font-size:16px;line-height:1.7;padding:10px
 .ph{position:relative}
 .ph img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;display:block}
 .ph button{position:absolute;top:4px;right:4px;padding:2px 9px;font-size:16px;border-radius:50%;background:#000a;color:#fff;border:0}
+#calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px}
+.cw{text-align:center;font-size:12px;color:var(--sub);padding:2px 0}
+.cw.sun,.cd.sun .n{color:#d9534f}
+.cw.sat,.cd.sat .n{color:#4a7fc1}
+.cd{aspect-ratio:1;padding:0;border:1px solid transparent;border-radius:10px;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;line-height:1.1}
+.cd .n{font-size:13px}
+.cd .m{font-size:18px;min-height:20px}
+.cd.has{background:var(--bg)}
+.cd.today{border-color:var(--acc)}
+.cd.sel{background:var(--acc);color:#fff}
+.cd.sel .n{color:#fff}
 #vDate{font-size:18px;font-weight:600}
 #vWeather{margin-top:4px;color:var(--sub);font-size:15px}
 #vMood{font-size:40px;margin-top:10px}
@@ -61,6 +72,15 @@ textarea{width:100%;min-height:220px;font-size:16px;line-height:1.7;padding:10px
       <button id="today">今日</button>
       <button id="yest">昨日</button>
     </div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <button id="cprev">◀</button>
+      <b id="calTitle"></b>
+      <button id="cnext">▶</button>
+    </div>
+    <div id="calGrid"></div>
   </div>
 
   <div class="card">
@@ -187,6 +207,7 @@ const allE=()=>tx("readonly",s=>s.getAll());
 // ---- state ----
 const blank=date=>({date,mood:0,text:"",photos:[],wcode:null,wtext:"",tmax:null,tmin:null,steps:null,weight:null,updated:""});
 let cur=blank(""), mode="view", tm, urls=[], lbUrl=null;
+let entryMap={}, calYM=new Date(Date.now()+9*3600e3).toISOString().slice(0,7);
 const ymd=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10)};
 const fmt=d=>new Date(d+"T00:00:00").toLocaleDateString("ja-JP",{year:"numeric",month:"long",day:"numeric",weekday:"short"});
 const isEmpty=e=>!(e.text||"").trim()&&!e.mood&&!e.photos.length&&e.steps==null&&e.weight==null;
@@ -195,6 +216,36 @@ const toast=m=>{const s=$("msg").firstElementChild;s.textContent=m;s.style.displ
 // ---- lightbox ----
 function openLb(b){lbUrl=URL.createObjectURL(b);$("lbimg").src=lbUrl;$("lb").hidden=false}
 $("lb").onclick=()=>{$("lb").hidden=true;$("lbimg").removeAttribute("src");if(lbUrl)URL.revokeObjectURL(lbUrl);lbUrl=null};
+
+// ---- カレンダー ----
+function renderCal(){
+  const [Y,M]=calYM.split("-").map(Number);
+  $("calTitle").textContent=`${Y}年${M}月`;
+  const first=new Date(Y,M-1,1).getDay(), days=new Date(Y,M,0).getDate();
+  const today=ymd(new Date());
+  const g=$("calGrid");g.innerHTML="";
+  ["日","月","火","水","木","金","土"].forEach((w,i)=>{
+    const h=document.createElement("div");h.className="cw"+(i===0?" sun":i===6?" sat":"");h.textContent=w;g.appendChild(h);
+  });
+  for(let i=0;i<first;i++)g.appendChild(document.createElement("div"));
+  for(let d=1;d<=days;d++){
+    const ds=`${Y}-${String(M).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+    const e=entryMap[ds], wd=(first+d-1)%7;
+    const c=document.createElement("button");
+    c.className="cd"+(wd===0?" sun":wd===6?" sat":"")+(e?" has":"")+(ds===cur.date?" sel":"")+(ds===today?" today":"");
+    c.innerHTML='<span class="n"></span><span class="m"></span>';
+    c.firstChild.textContent=d;
+    c.lastChild.textContent=e?(MOODS[e.mood]||"•"):"";
+    c.onclick=()=>{load(ds);scrollTo(0,0)};
+    g.appendChild(c);
+  }
+}
+const calShift=n=>{
+  const [Y,M]=calYM.split("-").map(Number);
+  const d=new Date(Y,M-1+n,1);
+  calYM=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+  renderCal();
+};
 
 // ---- render ----
 function photoGrid(box,editable){
@@ -234,6 +285,7 @@ function render(){
     $("vText").textContent=cur.text||"";
     $("vText").hidden=!(cur.text||"").trim();
     photoGrid($("vPhotos"),false);
+    renderCal();
   }else{
     $("eTitle").textContent=fmt(cur.date)+"　編集中";
     $("weather").textContent=cur.wcode==null?"天気：未取得":wtxt;
@@ -250,6 +302,7 @@ async function load(date){
   if(!cur.photos)cur.photos=cur.photo?[cur.photo]:[]; // 旧データ(1枚)を引き継ぐ
   delete cur.photo;
   mode="view";
+  calYM=date.slice(0,7);
   render();
   if(cur.wcode==null)fetchWeather(true);
 }
@@ -312,6 +365,8 @@ function resize(file,max=1280){
 // ---- list ----
 async function refreshList(){
   const a=(await allE()).sort((x,y)=>y.date.localeCompare(x.date));
+  entryMap=Object.fromEntries(a.map(e=>[e.date,e]));
+  renderCal();
   $("list").innerHTML="";
   if(!a.length){$("list").textContent="まだ日記がありません";return}
   a.forEach(e=>{
@@ -630,6 +685,8 @@ $("hbtn").onclick=fetchHealth;
 
 // ---- events: 表示画面 ----
 const shift=n=>{const d=new Date(cur.date+"T00:00:00");d.setDate(d.getDate()+n);return ymd(d)};
+$("cprev").onclick=()=>calShift(-1);
+$("cnext").onclick=()=>calShift(1);
 $("date").onchange=e=>{if(e.target.value)load(e.target.value)};
 $("prev").onclick=()=>load(shift(-1));
 $("next").onclick=()=>load(shift(1));
