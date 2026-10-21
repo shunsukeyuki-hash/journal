@@ -376,7 +376,18 @@ async function renderSum(){
       $("edit").click();
       if(mode==="edit")backToSum=true;   // 完了したら一覧に戻る
     };
-    row.appendChild(eb);c.appendChild(row);
+    const dbtn=document.createElement("button");dbtn.textContent="🗑 削除";dbtn.className="danger";
+    dbtn.onclick=async()=>{
+      if(!confirm(`${x.date} の日記を削除しますか？\n（写真も一緒に消え、元に戻せません）`))return;
+      await delE(x.date);
+      if(cur.date===x.date)cur=blank(x.date);
+      refreshList();
+      pendingScroll=scrollY;
+      render();
+      toast("削除しました");
+      autoSync();
+    };
+    row.append(dbtn,eb);c.appendChild(row);
     box.appendChild(c);
   });
   if(pendingScroll!=null){scrollTo(0,pendingScroll);pendingScroll=null}
