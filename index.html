@@ -44,6 +44,9 @@ textarea{width:100%;min-height:220px;font-size:16px;line-height:1.7;padding:10px
 .cd.today{border-color:var(--acc)}
 .cd.sel{background:var(--acc);color:#fff}
 .cd.sel .n{color:#fff}
+.se .hd{display:flex;justify-content:space-between;gap:8px;font-weight:600;cursor:pointer}
+.se .vt{margin-top:6px}
+.se .tx{white-space:pre-wrap;line-height:1.9;margin-top:8px}
 #vDate{font-size:18px;font-weight:600}
 #vWeather{margin-top:4px;color:var(--sub);font-size:15px}
 #vMood{font-size:40px;margin-top:10px}
@@ -72,6 +75,7 @@ textarea{width:100%;min-height:220px;font-size:16px;line-height:1.7;padding:10px
       <button id="today">今日</button>
       <button id="yest">昨日</button>
     </div>
+    <div class="row" style="margin-top:8px"><button id="sumbtn">📖 週・月でまとめて見る</button></div>
   </div>
 
   <div class="card">
@@ -124,6 +128,24 @@ textarea{width:100%;min-height:220px;font-size:16px;line-height:1.7;padding:10px
     <div class="sub" style="font-size:13px;margin-top:8px">※写真は端末内に保存されます。Googleドライブ連携は次のステップで追加します。</div>
     <div id="pstat" class="sub" style="font-size:13px;margin-top:4px"></div>
   </div>
+</section>
+
+<!-- ========== まとめ画面 ========== -->
+<section id="sumScreen" hidden>
+  <div class="card">
+    <div class="row">
+      <button id="sback">← 戻る</button>
+      <button id="uweek">週</button>
+      <button id="umonth">月</button>
+    </div>
+    <div class="row" style="justify-content:space-between;margin-top:10px">
+      <button id="sprev">◀</button>
+      <b id="sTitle"></b>
+      <button id="snext">▶</button>
+    </div>
+    <div id="sStat" class="sub" style="font-size:13px;margin-top:8px"></div>
+  </div>
+  <div id="sList"></div>
 </section>
 
 <!-- ========== 編集画面 ========== -->
@@ -247,6 +269,76 @@ const calShift=n=>{
   renderCal();
 };
 
+// ---- まとめ（週・月） ----
+let sumUnit="week", sumRef="", sumTok=0;
+const WD=["日","月","火","水","木","金","土"];
+function sumRange(){
+  const d=new Date(sumRef+"T00:00:00");
+  if(sumUnit==="week"){
+    const s=new Date(d);s.setDate(d.getDate()-d.getDay());
+    const e=new Date(s);e.setDate(s.getDate()+6);
+    return [ymd(s),ymd(e)];
+  }
+  return [ymd(new Date(d.getFullYear(),d.getMonth(),1)),ymd(new Date(d.getFullYear(),d.getMonth()+1,0))];
+}
+function sumShift(n){
+  const d=new Date(sumRef+"T00:00:00");
+  if(sumUnit==="week")d.setDate(d.getDate()+7*n);
+  else d.setTime(new Date(d.getFullYear(),d.getMonth()+n,1).getTime());
+  sumRef=ymd(d);
+}
+async function renderSum(){
+  const tok=++sumTok;
+  const [s,e]=sumRange();
+  const sd=new Date(s+"T00:00:00"), ed=new Date(e+"T00:00:00");
+  $("sTitle").textContent=sumUnit==="week"
+    ?`${sd.getMonth()+1}/${sd.getDate()}(${WD[sd.getDay()]}) 〜 ${ed.getMonth()+1}/${ed.getDate()}(${WD[ed.getDay()]})`
+    :`${sd.getFullYear()}年${sd.getMonth()+1}月`;
+  $("uweek").classList.toggle("pri",sumUnit==="week");
+  $("umonth").classList.toggle("pri",sumUnit==="month");
+  const all=(await allE()).filter(x=>x.date>=s&&x.date<=e).sort((a,b)=>a.date.localeCompare(b.date));
+  if(tok!==sumTok||mode!=="sum")return;
+  // 集計
+  const mc=[0,0,0,0];all.forEach(x=>mc[x.mood||0]++);
+  const stp=all.filter(x=>x.steps!=null).map(x=>x.steps);
+  const wts=all.filter(x=>x.weight!=null).map(x=>x.weight);
+  const stat=[`日記 ${all.length}件`];
+  if(mc[1]+mc[2]+mc[3])stat.push(`😊${mc[3]} 😐${mc[2]} 😞${mc[1]}`);
+  if(stp.length)stat.push(`平均 ${Math.round(stp.reduce((a,b)=>a+b,0)/stp.length).toLocaleString()}歩`);
+  if(wts.length)stat.push(`体重 ${wts[0]}→${wts[wts.length-1]}kg`);
+  $("sStat").textContent=stat.join("　");
+  // 一覧
+  const box=$("sList");box.innerHTML="";
+  if(!all.length){
+    const d=document.createElement("div");d.className="card sub";d.style.textAlign="center";
+    d.textContent="この期間の日記はありません";box.appendChild(d);return;
+  }
+  all.forEach(x=>{
+    const c=document.createElement("div");c.className="card se";
+    const dd=new Date(x.date+"T00:00:00");
+    const hd=document.createElement("div");hd.className="hd";
+    const l=document.createElement("span");l.textContent=`${dd.getMonth()+1}月${dd.getDate()}日(${WD[dd.getDay()]})`;
+    const r=document.createElement("span");r.textContent=`${x.wcode==null?"":WICON(x.wcode)} ${MOODS[x.mood]||""}`;
+    hd.append(l,r);hd.onclick=()=>{load(x.date);scrollTo(0,0)};
+    c.appendChild(hd);
+    const vit=[x.steps!=null?`👣 ${Number(x.steps).toLocaleString()}歩`:"",x.weight!=null?`⚖️ ${x.weight}kg`:""].filter(Boolean).join("　");
+    if(vit){const v=document.createElement("div");v.className="vt sub";v.textContent=vit;c.appendChild(v)}
+    if((x.text||"").trim()){const t=document.createElement("div");t.className="tx";t.textContent=x.text;c.appendChild(t)}
+    const ph=x.photos||(x.photo?[x.photo]:[]);
+    if(ph.length){
+      const g=document.createElement("div");g.className="photos";
+      ph.forEach(b=>{
+        const w=document.createElement("div");w.className="ph";
+        const u=URL.createObjectURL(b);urls.push(u);
+        const im=document.createElement("img");im.src=u;im.onclick=()=>openLb(b);
+        w.appendChild(im);g.appendChild(w);
+      });
+      c.appendChild(g);
+    }
+    box.appendChild(c);
+  });
+}
+
 // ---- render ----
 function photoGrid(box,editable){
   box.innerHTML="";
@@ -265,9 +357,11 @@ function photoGrid(box,editable){
 }
 function render(){
   urls.forEach(u=>URL.revokeObjectURL(u));urls=[];
-  const edit=mode==="edit";
-  $("viewScreen").hidden=edit;
+  const edit=mode==="edit", sum=mode==="sum";
+  $("viewScreen").hidden=edit||sum;
   $("editScreen").hidden=!edit;
+  $("sumScreen").hidden=!sum;
+  if(sum){renderSum();return}
   const wtxt=cur.wcode==null?"":`${WICON(cur.wcode)} ${cur.wtext}　最高${Math.round(cur.tmax)}° / 最低${Math.round(cur.tmin)}°`;
   if(!edit){
     const empty=isEmpty(cur);
@@ -685,6 +779,12 @@ $("hbtn").onclick=fetchHealth;
 
 // ---- events: 表示画面 ----
 const shift=n=>{const d=new Date(cur.date+"T00:00:00");d.setDate(d.getDate()+n);return ymd(d)};
+$("sumbtn").onclick=()=>{sumRef=cur.date;mode="sum";render();scrollTo(0,0)};
+$("sback").onclick=()=>{mode="view";render();scrollTo(0,0)};
+$("uweek").onclick=()=>{sumUnit="week";render()};
+$("umonth").onclick=()=>{sumUnit="month";render()};
+$("sprev").onclick=()=>{sumShift(-1);render()};
+$("snext").onclick=()=>{sumShift(1);render()};
 $("cprev").onclick=()=>calShift(-1);
 $("cnext").onclick=()=>calShift(1);
 $("date").onchange=e=>{if(e.target.value)load(e.target.value)};
