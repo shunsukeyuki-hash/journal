@@ -494,7 +494,7 @@ async function renderSum(){
     const d=document.createElement("div");d.className="card empty";
     d.textContent="この期間の日記はありません";box.appendChild(d);return;
   }
-  all.forEach(x=>{
+  [...all].reverse().forEach(x=>{   // 新しい日記を上に
     const c=document.createElement("div");c.className="card ec";
     const dd=new Date(x.date+"T00:00:00");
     const badge=document.createElement("div");badge.className="ec-date";
