@@ -751,6 +751,7 @@ function loadGsi(){
   });
   return gsiP;
 }
+let quietAuth=false;
 async function getToken(){
   if(gs.token&&Date.now()<gs.exp-60000)return gs.token;
   const cid=localStorage.getItem("gcid");
@@ -758,15 +759,20 @@ async function getToken(){
   await loadGsi();
   return new Promise((res,rej)=>{
     const c=google.accounts.oauth2.initTokenClient({
-      client_id:cid,scope:SCOPE,include_granted_scopes:false,
+      client_id:cid,scope:SCOPE,include_granted_scopes:false,hint:localStorage.getItem("gemail")||undefined,
       callback:r=>{
         if(r.error)return rej(new Error("ログインに失敗しました（"+r.error+"）"));
         gs.token=r.access_token;gs.exp=Date.now()+(+r.expires_in||3600)*1000;
-        localStorage.setItem("gconn","1");res(gs.token);
+        localStorage.setItem("gconn","1");
+        if(!localStorage.getItem("gemail")){   // アカウント選択を省くため、ログイン中のメールを控える
+          fetch(D+"/about?fields=user(emailAddress)",{headers:{Authorization:"Bearer "+gs.token}})
+            .then(x=>x.json()).then(j=>{if(j.user&&j.user.emailAddress)localStorage.setItem("gemail",j.user.emailAddress)}).catch(()=>{});
+        }
+        res(gs.token);
       },
       error_callback:()=>rej(new Error("ログインが中断されました"))
     });
-    c.requestAccessToken({prompt:localStorage.getItem("gconn")?"":"consent"});
+    c.requestAccessToken({prompt:!localStorage.getItem("gconn")?"consent":(quietAuth&&localStorage.getItem("gemail")?"none":"")});
   });
 }
 async function gapi(url,opts={}){
@@ -907,17 +913,18 @@ async function syncDrive(silent){
 }
 // 自動同期：保存・削除のあと／アプリを開いたとき／画面に戻ったときに、裏で同期する
 let lastAuto=0, needTap=false;
-const autoSync=(force)=>{
+const autoSync=(force,interactive)=>{
   if(!localStorage.getItem("gconn")||syncing||mode==="edit")return;
   if(!force&&Date.now()-lastAuto<120000)return;   // 2分以内の連続実行は避ける
   lastAuto=Date.now();
   const valid=gs.token&&Date.now()<gs.exp-60000;
   if(!valid)needTap=true;                          // 期限切れ→次のタップで再ログインを試す
-  syncDrive(true).then(()=>{if(gs.token&&Date.now()<gs.exp-60000)needTap=false});
+  quietAuth=!interactive;                          // 画面操作なし→ログイン画面を出さず静かに更新を試す
+  syncDrive(true).then(()=>{quietAuth=false;if(gs.token&&Date.now()<gs.exp-60000)needTap=false});
 };
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)autoSync()});
 document.addEventListener("pointerdown",()=>{
-  if(needTap&&!syncing&&mode!=="edit"){needTap=false;autoSync(true)}   // タップ操作ならログイン画面が許可される
+  if(needTap&&!syncing&&mode!=="edit"){needTap=false;autoSync(true,true)}   // タップ操作ならログイン画面が許可される
 },{capture:true});
 function initDriveUI(){
   $("cid").value=localStorage.getItem("gcid")||"";
