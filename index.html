@@ -528,7 +528,7 @@ async function renderSum(){
       pendingScroll=scrollY;
       render();
       toast("削除しました");
-      autoSync();
+      autoSync(true);
     };
     row.append(dbtn,eb);main.appendChild(row);
     c.append(badge,main);
@@ -905,7 +905,20 @@ async function syncDrive(silent){
     if(!silent)toast("同期できませんでした："+e.message);
   }finally{syncing=false}
 }
-const autoSync=()=>{if(gs.token&&Date.now()<gs.exp-60000)syncDrive(true)};
+// 自動同期：保存・削除のあと／アプリを開いたとき／画面に戻ったときに、裏で同期する
+let lastAuto=0, needTap=false;
+const autoSync=(force)=>{
+  if(!localStorage.getItem("gconn")||syncing||mode==="edit")return;
+  if(!force&&Date.now()-lastAuto<120000)return;   // 2分以内の連続実行は避ける
+  lastAuto=Date.now();
+  const valid=gs.token&&Date.now()<gs.exp-60000;
+  if(!valid)needTap=true;                          // 期限切れ→次のタップで再ログインを試す
+  syncDrive(true).then(()=>{if(gs.token&&Date.now()<gs.exp-60000)needTap=false});
+};
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)autoSync()});
+document.addEventListener("pointerdown",()=>{
+  if(needTap&&!syncing&&mode!=="edit"){needTap=false;autoSync(true)}   // タップ操作ならログイン画面が許可される
+},{capture:true});
 function initDriveUI(){
   $("cid").value=localStorage.getItem("gcid")||"";
   showLast(0,0);
@@ -1033,7 +1046,7 @@ $("del").onclick=async()=>{
   cur=blank(cur.date);
   render();refreshList();toast("削除しました");
   fetchWeather(true);
-  autoSync();
+  autoSync(true);
 };
 $("exp").onclick=exportCSV;
 $("imp").onclick=()=>$("cfile").click();
@@ -1086,7 +1099,7 @@ $("done").onclick=async()=>{
   render();
   if(!back)scrollTo(0,0);
   toast("保存しました");
-  autoSync();
+  autoSync(true);
 };
 
 // ---- 永続ストレージ（ブラウザによる自動削除を防ぐ） ----
@@ -1107,6 +1120,7 @@ async function protectStorage(){
   await load(ymd(new Date()));
   refreshList();
   goHome();
+  autoSync(true);
   if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js");
 })();
 </script>
