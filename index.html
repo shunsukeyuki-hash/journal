@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#f4f4f0">
 <script>try{if(localStorage.getItem("theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}</script>
 <link rel="manifest" href="manifest.webmanifest">
@@ -10,100 +10,210 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <title>マイジャーナル</title>
 <style>
-:root{--bg:#f4f4f0;--card:#fcfcfa;--ink:#333536;--sub:#6b706c;--acc:#4a7c5c;--soft:#e4ede6;--line:#dcdcd5}
-:root[data-theme="dark"]{--bg:#161a18;--card:#1f2421;--ink:#e4e7e4;--sub:#9aa39d;--acc:#7fb892;--soft:#263229;--line:#333a36;color-scheme:dark}
-[data-theme="dark"] .card{box-shadow:none}
-[data-theme="dark"] button.pri,[data-theme="dark"] .cd.sel,[data-theme="dark"] .cd.sel .n{color:#10201a}
-[data-theme="dark"] button.danger{color:#e0958d;border-color:#7a4a45}
-[data-theme="dark"] .cw.sun,[data-theme="dark"] .cd.sun .n{color:#d39088}
-[data-theme="dark"] .cw.sat,[data-theme="dark"] .cd.sat .n{color:#8fb5a3}
-[data-theme="dark"] .cd.sel .n{color:#10201a}
-#fab{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom));width:56px;height:56px;padding:0;border-radius:50%;border:0;background:var(--acc);color:#fff;font-size:32px;line-height:1;box-shadow:0 3px 10px #0004;z-index:4}
-[data-theme="dark"] #fab{color:#10201a}
+:root{--bg:#f4f4f0;--card:#fcfcfa;--ink:#333536;--sub:#6b706c;--acc:#4a7c5c;--soft:#e4ede6;--line:#dcdcd5;--sun:#a45445;--sat:#688274;--warm:#9b6c50;--shadow:0 10px 30px rgba(46,52,47,.07);--r:22px;--onacc:#fff;color-scheme:light}
+:root[data-theme="dark"]{--bg:#161a18;--card:#1f2421;--ink:#e4e7e4;--sub:#9aa39d;--acc:#7fb892;--soft:#263229;--line:#333a36;--sun:#d18d7f;--sat:#9ab9a8;--warm:#c49a7b;--shadow:0 10px 30px rgba(0,0,0,.18);--onacc:#10201a;color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif}
-main{max-width:640px;margin:0 auto;padding:16px 16px 80px}
-#top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:6px 16px;font-size:18px;font-weight:600;color:var(--acc)}
-#top button{font-size:22px;padding:4px 12px;color:var(--ink)}
-main{padding-top:14px}
-#drawerBg{position:fixed;inset:0;background:#0007;z-index:20}
-#drawer{position:fixed;top:0;right:0;bottom:0;width:78%;max-width:300px;background:var(--card);z-index:21;padding:16px 12px;overflow-y:auto;box-shadow:-4px 0 16px #0004;animation:slide .15s ease-out}
-@keyframes slide{from{transform:translateX(100%)}to{transform:none}}
-#drawer .mt{font-weight:600;color:var(--acc);padding:4px 8px 12px}
-.mi{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:transparent;padding:14px 8px;font-size:16px;border-radius:8px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 1px 2px #0000000a}
+html{background:var(--bg)}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;-webkit-font-smoothing:antialiased}
+button,input,textarea{font:inherit}
+button{font-size:14px;padding:9px 14px;border-radius:13px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;transition:transform .16s ease}
+button:active{transform:scale(.97)}
+button.pri{background:var(--acc);color:var(--onacc);border-color:var(--acc);font-weight:700}
+button.danger{color:#a15446;border-color:var(--line)}
+[data-theme="dark"] button.danger{color:#e0958d}
+
+/* ヘッダー */
+#top{position:sticky;top:0;z-index:5;height:70px;padding:max(8px,env(safe-area-inset-top)) 18px 8px;max-width:640px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:14px;background:color-mix(in srgb,var(--bg) 91%,transparent);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid color-mix(in srgb,var(--line) 65%,transparent)}
+.brand{display:flex;align-items:center;gap:11px;min-width:0}
+.brand-icon{width:42px;height:42px;flex:0 0 42px;border-radius:14px;overflow:hidden;background:var(--soft);box-shadow:0 3px 9px rgba(52,42,32,.12)}
+.brand-icon img{width:100%;height:100%;object-fit:cover;display:block}
+.brand-copy{line-height:1.15}
+.brand-copy strong{display:block;font-size:16px;letter-spacing:.035em;color:var(--ink)}
+.brand-copy small{display:block;color:var(--sub);font-size:9px;letter-spacing:.16em;margin-top:5px}
+#menuBtn{width:44px;height:44px;padding:0;border-radius:15px;display:inline-grid;place-items:center}
+#menuBtn svg{width:20px;height:20px}
+main{max-width:640px;margin:0 auto;padding:20px 18px calc(110px + env(safe-area-inset-bottom))}
+
+/* 共通パーツ */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:15px;margin-bottom:12px;box-shadow:var(--shadow)}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .sub{color:var(--sub)}
-#vVitals{margin-top:8px;font-size:16px}
-input[type=text],input[type=number]{width:100%;font-size:14px;padding:9px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
-input[type=date]{font-size:16px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
-button{font-size:15px;padding:9px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
-button.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
-button.danger{color:#a8483f;border-color:#c9a29d}
-.moods{display:flex;gap:10px}
-.moods button{flex:1;font-size:32px;padding:10px 0}
-.moods button.on{background:var(--soft);border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
-textarea{width:100%;min-height:220px;font-size:16px;line-height:1.7;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);resize:vertical}
-.photos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
-.photos:empty{display:none}
-.ph{position:relative}
-.ph img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;display:block}
-.ph button{position:absolute;top:4px;right:4px;padding:2px 9px;font-size:16px;border-radius:50%;background:#000a;color:#fff;border:0}
-#calGrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px}
-.cw{text-align:center;font-size:12px;color:var(--sub);padding:2px 0}
-.cw.sun,.cd.sun .n{color:#a0625a}
-.cw.sat,.cd.sat .n{color:#5f8070}
-.cd{aspect-ratio:1;padding:0;border:1px solid transparent;border-radius:10px;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;line-height:1.1}
-.cd .n{font-size:13px}
-.cd .m{font-size:18px;min-height:20px}
+.page-head{margin:0 0 18px}
+.eyebrow{color:var(--sub);font-size:10px;font-weight:650;letter-spacing:.16em}
+.page-head h2{font-size:26px;line-height:1.25;letter-spacing:-.03em;margin:7px 0 6px}
+.page-sub{margin:0;font-size:13px;color:var(--sub);line-height:1.65}
+.sec-title{display:flex;justify-content:space-between;align-items:center;margin:20px 2px 10px;font-size:15px;font-weight:700}
+.sec-title small{font-weight:400;color:var(--sub);font-size:11px}
+.fl{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;margin:0 2px 9px}
+.fl small{color:var(--sub);font-size:10px;font-weight:450}
+input[type=text],input[type=number]{width:100%;font-size:14px;padding:11px 12px;border-radius:13px;border:1px solid var(--line);background:var(--bg);color:var(--ink);outline-color:var(--acc)}
+input[type=date]{font-size:15px;padding:9px 11px;border-radius:13px;border:1px solid var(--line);background:var(--bg);color:var(--ink);min-height:42px}
+.txtbtn{border:0;background:transparent;color:var(--acc);font-weight:700;font-size:12px;padding:8px 4px;box-shadow:none}
+
+/* 週・月まとめ */
+.period{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px}
+.seg{display:flex;gap:3px;padding:3px;border-radius:14px;background:var(--bg)}
+.seg button{border:0;background:transparent;color:var(--sub);padding:8px 14px;border-radius:11px;font-size:12px;font-weight:400}
+.seg button.pri{background:var(--card);color:var(--ink);font-weight:700;box-shadow:0 2px 8px rgba(25,35,28,.08)}
+.pnav{display:flex;align-items:center;gap:2px}
+.pnav button{width:34px;height:34px;padding:0;border:0;border-radius:11px;background:transparent;font-size:19px;color:var(--sub)}
+#sTitle{min-width:112px;text-align:center;font-size:12px;font-weight:700}
+.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:6px}
+.stat{min-height:100px;margin:0;padding:14px 15px 13px}
+.stat-l{color:var(--sub);display:flex;justify-content:space-between;font-size:11px}
+.stat-l i{font-style:normal;color:var(--acc);font-size:15px}
+.stat-v{font-size:24px;font-weight:720;letter-spacing:-.04em;margin:10px 0 1px;line-height:1.1}
+.stat-v small{font-size:11px;font-weight:550;letter-spacing:0;color:var(--sub);margin-left:4px}
+.stat-n{font-size:10px;color:var(--sub);margin:5px 0 0}
+.pills{display:flex;gap:6px;margin-top:12px}
+.pill{border:1px solid var(--line);background:var(--bg);padding:6px 8px;border-radius:99px;font-size:11px}
+.pill b{margin-left:3px}
+
+/* 日記カード（一覧・まとめ） */
+.ec{display:grid;grid-template-columns:43px 1fr;gap:12px;align-items:start;padding:15px;margin-bottom:9px}
+.ec-date{width:42px;height:50px;border-radius:13px;background:var(--soft);display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--acc)}
+.ec-date strong{line-height:1;font-size:18px}
+.ec-date small{font-size:9px;margin-top:4px}
+.ec-main{min-width:0}
+.ec-top{display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer}
+.ec-mood{font-size:18px}
+.ec-meta{font-size:10px;color:var(--sub);text-align:right}
+.ec-text{font-size:13px;line-height:1.7;margin:6px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.ec-text.clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ec-act{display:flex;gap:7px;margin-top:11px;justify-content:flex-end}
+.ec-act button{padding:6px 11px;font-size:11px;border-radius:10px;color:var(--sub)}
+.ec-act button.danger{color:#a15446}
+[data-theme="dark"] .ec-act button.danger{color:#e0958d}
+.empty{text-align:center;color:var(--sub);font-size:12px;line-height:1.7;padding:26px 20px}
+
+/* カレンダー・日別 */
+.cal{padding:16px 13px 15px}
+.cal-nav{display:flex;justify-content:space-between;align-items:center;margin:0 1px 10px}
+.cal-nav b{font-size:16px}
+.cal-nav button{width:34px;height:34px;padding:0;border:0;background:transparent;color:var(--sub);font-size:17px}
+#calGrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px 1px;text-align:center}
+.cw{font-size:10px;color:var(--sub);padding:4px 0 6px;text-align:center}
+.cw.sun,.cd.sun .n{color:var(--sun)}
+.cw.sat,.cd.sat .n{color:var(--sat)}
+.cd{height:49px;padding:0;border:1px solid transparent;border-radius:13px;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.1}
+.cd .n{font-size:12px}
+.cd .m{font-size:11px;min-height:12px}
 .cd.has{background:var(--soft)}
 .cd.today{border-color:var(--acc)}
-.cd.sel{background:var(--acc);color:#fff}
-.cd.sel .n{color:#fff}
-.se .hd{display:flex;justify-content:space-between;gap:8px;font-weight:600;cursor:pointer}
-.se .vt{margin-top:6px}
-.se .tx{white-space:pre-wrap;line-height:1.9;margin-top:8px}
-#vDate{font-size:18px;font-weight:600}
-#vWeather{margin-top:4px;color:var(--sub);font-size:15px}
-#vMood{font-size:40px;margin-top:10px}
-#vText{white-space:pre-wrap;line-height:1.9;font-size:16px;margin-top:12px}
-#vEmpty{color:var(--sub);padding:18px 0;text-align:center}
-.item{padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
-.item:last-child{border:0}
-.item small{color:var(--sub)}
-#msg{position:fixed;left:0;right:0;bottom:16px;text-align:center;pointer-events:none}
-#msg span{background:#000c;color:#fff;padding:8px 16px;border-radius:20px;font-size:14px;display:none}
-#lb{position:fixed;inset:0;background:#000e;display:flex;align-items:center;justify-content:center;z-index:10}
-#lb img{max-width:100%;max-height:100%}
+.cd.sel{background:var(--acc);color:var(--onacc);font-weight:750}
+.cd.sel .n{color:var(--onacc)}
+.legend{display:flex;gap:13px;color:var(--sub);font-size:10px;margin:12px 5px 0}
+.legend i{width:7px;height:7px;border-radius:99px;display:inline-block;background:var(--acc);margin-right:5px}
+.datebar{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.datebar button{padding:9px 12px;border-radius:12px;font-size:13px}
+#vDate{font-size:18px;font-weight:700}
+#vEmpty{color:var(--sub);padding:18px 0 6px;text-align:center;font-size:13px}
+#vWeather{margin-top:6px;color:var(--sub);font-size:13px}
+#vMood{font-size:38px;margin-top:10px}
+#vVitals{margin-top:8px;font-size:14px;color:var(--sub)}
+#vText{white-space:pre-wrap;line-height:1.9;font-size:15px;margin-top:12px;overflow-wrap:anywhere}
+.vact{margin-top:16px;display:flex;gap:8px}
+.vact button{flex:1}
+
+/* 写真 */
+.photos{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:12px}
+.photos:empty{display:none}
+.ph{position:relative}
+.ph img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:13px;display:block;border:1px solid var(--line);cursor:pointer}
+.ph button{position:absolute;top:5px;right:5px;width:26px;height:26px;padding:0;border-radius:50%;background:rgba(24,28,25,.78);color:#fff;border:0;font-size:16px;line-height:1}
+
+/* 編集 */
+.fg{margin-top:18px}
+.fg:first-child{margin-top:0}
+.weather{display:flex;align-items:center;gap:12px;padding:14px}
+.weather #weather{flex:1;font-size:13px;line-height:1.6;margin:0}
+.weather button{width:38px;height:38px;padding:0;border-radius:11px;color:var(--acc);font-size:17px}
+.moods{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.moods button{min-height:78px;padding:6px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:var(--sub)}
+.moods .face{font-size:26px;filter:saturate(.8)}
+.moods small{font-size:10px}
+.moods button.on{border-color:var(--acc);background:var(--soft);color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
+.nums{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.nums label span{display:block;font-size:10px;color:var(--sub);margin:0 1px 6px}
+.nb{display:flex;align-items:center;gap:6px}
+.nb em{font-style:normal;color:var(--sub);font-size:11px}
+textarea{width:100%;min-height:200px;font-size:16px;line-height:1.8;padding:13px 14px;border-radius:16px;border:1px solid var(--line);background:var(--card);color:var(--ink);resize:vertical;outline-color:var(--acc)}
+#pbtn{border:1px dashed var(--acc);background:var(--soft);color:var(--acc);font-weight:700;font-size:12px;border-radius:12px}
+#done{display:block;width:100%;min-height:56px;padding:0;font-size:16px;border-radius:17px;box-shadow:0 8px 18px color-mix(in srgb,var(--acc) 23%,transparent)}
+.note{font-size:10px;color:var(--sub);line-height:1.6;margin:10px 2px 0}
+
+/* 設定 */
+.setrow{display:flex;align-items:center;gap:12px}
+.setico{flex:0 0 38px;height:38px;border-radius:13px;background:var(--soft);color:var(--acc);display:grid;place-items:center;font-size:17px}
+.setcopy{flex:1;min-width:0}
+.setcopy strong{display:block;font-size:13px}
+.setcopy small{display:block;color:var(--sub);line-height:1.5;font-size:11px;margin-top:4px}
+input[type=checkbox]#autoHealth{appearance:none;-webkit-appearance:none;width:44px!important;height:26px!important;border-radius:99px;background:var(--line);position:relative;cursor:pointer;transition:background .2s;flex:0 0 auto;margin:0}
+#autoHealth::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .2s}
+#autoHealth:checked{background:var(--acc)}
+#autoHealth:checked::after{transform:translateX(18px)}
+.sets{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.sets button{min-height:44px;font-size:12px;font-weight:650}
+.notice{border-radius:16px;padding:14px;color:var(--sub);background:var(--soft);font-size:11px;line-height:1.75}
+.notice strong{color:var(--acc)}
+
+/* メニュー */
+#drawerBg{position:fixed;inset:0;background:rgba(18,23,20,.38);z-index:20}
+#drawer{position:fixed;top:0;right:0;bottom:0;width:86%;max-width:330px;background:var(--card);z-index:21;padding:calc(20px + env(safe-area-inset-top)) 16px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;box-shadow:var(--shadow);animation:slide .22s cubic-bezier(.2,.8,.2,1);overflow-y:auto}
+#drawer[hidden]{display:none}
+@keyframes slide{from{transform:translateX(100%)}to{transform:none}}
+.mt{display:flex;align-items:center;justify-content:space-between;font-weight:700;font-size:15px;padding:2px 2px 16px;border-bottom:1px solid var(--line)}
+.mt button{width:36px;height:36px;padding:0;border-radius:12px}
+.ml{color:var(--sub);font-size:10px;font-weight:700;letter-spacing:.12em;margin:18px 8px 8px}
+.mi{display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:0 11px;margin-bottom:4px;text-align:left;border:0;background:transparent;border-radius:13px;font-size:14px}
+.mi:hover,.mi:focus-visible{background:var(--bg);outline:none}
+.mi .ic{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:var(--soft);color:var(--acc);font-size:14px;flex:0 0 28px}
+.mi .tr{margin-left:auto;color:var(--sub);font-size:11px}
+.mbot{margin-top:auto;border-top:1px solid var(--line);padding-top:12px}
+
+/* FAB・トースト・拡大表示 */
+#fab{position:fixed;right:max(20px,calc((100vw - 640px)/2 + 20px));bottom:calc(22px + env(safe-area-inset-bottom));width:58px;height:58px;padding:0;border-radius:20px;border:0;background:var(--acc);color:var(--onacc);font-size:31px;font-weight:300;line-height:1;display:grid;place-items:center;box-shadow:0 9px 24px color-mix(in srgb,var(--acc) 38%,transparent);z-index:4}
+#msg{position:fixed;left:0;right:0;bottom:calc(92px + env(safe-area-inset-bottom));text-align:center;pointer-events:none;z-index:30}
+#msg span{background:#303a33;color:#fff;padding:11px 15px;border-radius:13px;font-size:12px;display:none;max-width:calc(100vw - 36px);box-shadow:0 8px 25px rgba(0,0,0,.22)}
+#lb{position:fixed;inset:0;background:rgba(15,20,17,.82);display:flex;align-items:center;justify-content:center;z-index:40;padding:18px}
+#lb img{max-width:100%;max-height:100%;border-radius:14px}
+@media(max-width:380px){main{padding-left:14px;padding-right:14px}.cd{height:45px}#sTitle{min-width:92px;font-size:11px}}
+@media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
 </style>
 </head>
 <body>
-<header id="top"><span>📔 マイジャーナル</span><button id="menuBtn" aria-label="メニュー">☰</button></header>
+<header id="top">
+  <div class="brand">
+    <div class="brand-icon"><img src="brand.webp" alt="" onerror="this.onerror=null;this.src='icon-192.png'"></div>
+    <div class="brand-copy"><strong>マイジャーナル</strong><small>MY JOURNAL</small></div>
+  </div>
+  <button id="menuBtn" aria-label="メニュー"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+</header>
 <main>
 
-<!-- ========== 表示画面 ========== -->
+<!-- ========== 表示画面（カレンダー・日別） ========== -->
 <section id="viewScreen">
+  <div class="page-head"><div class="eyebrow">日付を選んで記録を見る</div><h2>カレンダー・日別</h2></div>
+
+  <div class="card cal">
+    <div class="cal-nav">
+      <button id="cprev" aria-label="前の月">‹</button>
+      <b id="calTitle"></b>
+      <button id="cnext" aria-label="次の月">›</button>
+    </div>
+    <div id="calGrid"></div>
+    <div class="legend"><span><i></i>日記あり</span><span>今日：枠線</span><span>選択中：緑</span></div>
+  </div>
+
   <div class="card">
-    <div class="row">
-      <button id="prev">◀</button>
+    <div class="datebar" style="margin-bottom:14px">
+      <button id="prev" aria-label="前の日">‹</button>
       <input type="date" id="date">
-      <button id="next">▶</button>
+      <button id="next" aria-label="次の日">›</button>
       <button id="today">今日</button>
       <button id="yest">昨日</button>
     </div>
-  </div>
-
-  <div class="card">
-    <div class="row" style="justify-content:space-between">
-      <button id="cprev">◀</button>
-      <b id="calTitle"></b>
-      <button id="cnext">▶</button>
-    </div>
-    <div id="calGrid"></div>
-  </div>
-
-  <div class="card">
     <div id="vDate"></div>
     <div id="vEmpty">この日の日記はまだありません</div>
     <div id="vBody">
@@ -113,111 +223,135 @@ textarea{width:100%;min-height:220px;font-size:16px;line-height:1.7;padding:10px
       <div id="vText"></div>
       <div id="vPhotos" class="photos"></div>
     </div>
-    <div class="row" style="margin-top:16px">
+    <div class="vact">
       <button class="pri" id="edit">✏️ 編集</button>
       <button class="danger" id="del">🗑 削除</button>
     </div>
   </div>
 
-  <div class="card">
-    <div class="sub" style="margin-bottom:8px">過去の日記</div>
-    <div id="list"></div>
-  </div>
-
+  <div class="sec-title"><span>過去の日記</span></div>
+  <div id="list"></div>
 </section>
 
 <!-- ========== 設定画面 ========== -->
 <section id="setScreen" hidden>
-  <div class="card"><b>⚙️ 設定・データ</b></div>
+  <div class="page-head"><div class="eyebrow">PREFERENCES &amp; DATA</div><h2>設定・データ</h2><p class="page-sub">記録の保存方法と、連携の設定。</p></div>
 
   <div class="card">
-    <div class="sub" style="margin-bottom:8px">☁️ Googleドライブ連携</div>
-    <input type="text" id="cid" placeholder="クライアントID（…apps.googleusercontent.com）" autocomplete="off">
-    <div class="row" style="margin-top:8px">
-      <button id="gsave">IDを保存</button>
-      <button class="pri" id="gsync">☁️ 今すぐ同期</button>
-    </div>
-    <div id="gstat" class="sub" style="font-size:13px;margin-top:8px"></div>
+    <label class="setrow" for="autoHealth">
+      <span class="setico">↗</span>
+      <span class="setcopy"><strong>歩数・体重の自動取得</strong><small>編集を開いたとき、未入力の欄を補います（入力済みは上書きしません）。Googleヘルスに一度ログインしたあとから働きます。</small></span>
+      <input type="checkbox" id="autoHealth">
+    </label>
   </div>
 
   <div class="card">
-    <div class="sub" style="margin-bottom:8px">データ（CSV）</div>
-    <div class="row">
+    <div class="setrow"><span class="setico">☁</span><span class="setcopy"><strong>Googleドライブ連携</strong><small>日記をバックアップし、機種変更や他の端末に備えます。</small></span></div>
+    <div style="margin-top:13px">
+      <input type="text" id="cid" placeholder="クライアントID（…apps.googleusercontent.com）" autocomplete="off">
+    </div>
+    <div class="sets">
+      <button id="gsave">IDを保存</button>
+      <button class="pri" id="gsync">☁ 今すぐ同期</button>
+    </div>
+    <div id="gstat" class="sub" style="font-size:12px;margin-top:10px"></div>
+  </div>
+
+  <div class="card">
+    <div class="setrow"><span class="setico">⇄</span><span class="setcopy"><strong>データ（CSV）</strong><small>日記データをCSVで書き出し・読み込みできます。</small></span></div>
+    <div class="sets">
       <button id="exp">CSVを書き出す</button>
       <button id="imp">CSVを読み込む</button>
-      <input type="file" id="cfile" accept=".csv,text/csv" hidden>
     </div>
-    <div class="sub" style="font-size:13px;margin-top:8px">※写真は端末内に保存されます。Googleドライブ連携は次のステップで追加します。</div>
-    <div id="pstat" class="sub" style="font-size:13px;margin-top:4px"></div>
+    <input type="file" id="cfile" accept=".csv,text/csv" hidden>
+    <div id="pstat" class="sub" style="font-size:12px;margin-top:10px"></div>
   </div>
+
+  <div class="notice"><strong>端末内に保存されています</strong><br>日記と写真はこのブラウザ（アプリ）の中に保存されます。機種変更やデータ消去に備え、Googleドライブ連携でバックアップしてください。</div>
 </section>
 
-<!-- ========== まとめ画面 ========== -->
+<!-- ========== まとめ画面（ホーム） ========== -->
 <section id="sumScreen" hidden>
-  <div class="card">
-    <div class="row">
-      <button id="uweek">週</button>
-      <button id="umonth">月</button>
+  <div class="page-head"><div class="eyebrow" id="sEye"></div><h2>日々のかけら</h2><p class="page-sub">今日も、自分のための一ページを。</p></div>
+  <div class="card period">
+    <div class="seg"><button id="uweek">週</button><button id="umonth">月</button></div>
+    <div class="pnav">
+      <button id="sprev" aria-label="前の期間">‹</button>
+      <span id="sTitle"></span>
+      <button id="snext" aria-label="次の期間">›</button>
     </div>
-    <div class="row" style="justify-content:space-between;margin-top:10px">
-      <button id="sprev">◀</button>
-      <b id="sTitle"></b>
-      <button id="snext">▶</button>
-    </div>
-    <div id="sStat" class="sub" style="font-size:13px;margin-top:8px"></div>
   </div>
+  <div id="sStat"></div>
+  <div class="sec-title"><span>日記の一覧</span></div>
   <div id="sList"></div>
 </section>
 
 <!-- ========== 編集画面 ========== -->
 <section id="editScreen" hidden>
-  <div class="card">
-    <div class="row"><b id="eTitle">✏️ 日付</b><input type="date" id="eDate"></div>
-    <div id="weather" class="sub" style="margin-top:6px"></div>
-    <div class="row" style="margin-top:8px"><button id="wbtn">天気を取得し直す</button></div>
+  <div class="page-head" style="margin-bottom:16px"><div class="eyebrow">MY JOURNAL</div><h2 id="eTitle" style="font-size:22px;margin:5px 0 0">日記を書く</h2></div>
+
+  <div class="fg">
+    <div class="fl">日付 <small>未来の日付は選べません</small></div>
+    <div class="card" style="padding:12px 14px;margin:0"><input type="date" id="eDate" style="width:100%;border:0;background:transparent;padding:0"></div>
   </div>
 
-  <div class="card">
-    <div class="sub" style="margin-bottom:8px">今日の気分</div>
+  <div class="fg">
+    <div class="fl">天気 <small>Open-Meteo</small></div>
+    <div class="card weather" style="margin:0"><div id="weather"></div><button id="wbtn" aria-label="天気を取得し直す">↻</button></div>
+  </div>
+
+  <div class="fg">
+    <div class="fl">今日の気分 <small>もう一度押すと解除</small></div>
     <div class="moods">
-      <button data-m="1">😞</button><button data-m="2">😐</button><button data-m="3">😊</button>
+      <button data-m="1"><span class="face">😞</span><small>悪い</small></button>
+      <button data-m="2"><span class="face">😐</span><small>ふつう</small></button>
+      <button data-m="3"><span class="face">😊</span><small>良い</small></button>
     </div>
   </div>
 
-  <div class="card">
-    <div class="sub" style="margin-bottom:8px">歩数・体重</div>
-    <div class="row">
-      <input type="number" id="steps" inputmode="numeric" placeholder="歩数" style="width:42%">
-      <input type="number" id="weight" inputmode="decimal" step="0.1" placeholder="体重(kg)" style="width:42%">
+  <div class="fg">
+    <div class="fl">からだの記録 <small>あとから入力できます</small></div>
+    <div class="nums">
+      <label><span>歩数</span><div class="nb"><input type="number" id="steps" inputmode="numeric" placeholder="—"><em>歩</em></div></label>
+      <label><span>体重</span><div class="nb"><input type="number" id="weight" inputmode="decimal" step="0.1" placeholder="—"><em>kg</em></div></label>
     </div>
-    <div class="row" style="margin-top:8px"><button id="hbtn">🩺 Googleヘルスから取得</button></div>
-    <div id="hstat" class="sub" style="font-size:13px;margin-top:6px;white-space:pre-wrap;word-break:break-all"></div>
+    <button class="txtbtn" id="hbtn">↻ Googleヘルスから取得</button>
+    <div id="hstat" class="sub" style="font-size:12px;white-space:pre-wrap;word-break:break-all"></div>
   </div>
 
-  <div class="card">
+  <div class="fg">
+    <div class="fl">今日のできごと <small>入力後1.5秒で自動保存</small></div>
     <textarea id="text" placeholder="今日はどんな一日でしたか？"></textarea>
-    <div class="row" style="margin-top:10px">
-      <button id="pbtn">📷 写真を追加（0/3）</button>
-      <input type="file" id="pfile" accept="image/*" multiple hidden>
-    </div>
-    <div id="photos" class="photos"></div>
   </div>
 
-  <button class="pri" id="done" style="display:block;width:100%;padding:16px 0;font-size:18px">✓ 完了</button>
-  <div class="sub" style="font-size:13px;margin-top:10px">入力内容は自動で保存されます。</div>
+  <div class="fg">
+    <div class="fl">写真 <small>最大3枚</small></div>
+    <div class="card" style="margin:0;padding:13px">
+      <button id="pbtn">＋ 写真を追加（0/3）</button>
+      <input type="file" id="pfile" accept="image/*" multiple hidden>
+      <div id="photos" class="photos"></div>
+    </div>
+  </div>
+
+  <div class="fg" style="margin-top:22px">
+    <button class="pri" id="done">✓ 完了</button>
+    <div class="note" style="text-align:center">入力内容は自動で保存されます。</div>
+  </div>
 </section>
 </main>
 
-<button id="fab" aria-label="日記を追加">＋</button>
+<button id="fab" aria-label="今日の日記を書く">＋</button>
 <div id="drawerBg" hidden></div>
-<nav id="drawer" hidden>
-  <div class="mt">メニュー</div>
-  <button class="mi" id="mAdd">✏️ 今日の日記を書く</button>
-  <button class="mi" id="mHome">🏠 週・月まとめ</button>
-  <button class="mi" id="mCal">📅 カレンダー・日別</button>
-  <button class="mi" id="mSync">☁️ 今すぐ同期</button>
-  <button class="mi" id="mSet">⚙️ 設定・データ（CSV）</button>
-  <button class="mi" id="mTheme">🌙 ダークモードに切り替え</button>
+<nav id="drawer" hidden aria-label="メインメニュー">
+  <div class="mt"><span>メニュー</span><button id="mClose" aria-label="閉じる">×</button></div>
+  <div class="ml">ページ</div>
+  <button class="mi" id="mAdd"><span class="ic">✎</span>今日の日記を書く<span class="tr">→</span></button>
+  <button class="mi" id="mHome"><span class="ic">▤</span>週・月まとめ<span class="tr">→</span></button>
+  <button class="mi" id="mCal"><span class="ic">▦</span>カレンダー・日別<span class="tr">→</span></button>
+  <button class="mi" id="mSet"><span class="ic">⚙</span>設定・データ（CSV）<span class="tr">→</span></button>
+  <div class="ml">データ</div>
+  <button class="mi" id="mSync"><span class="ic">↻</span>今すぐ同期<span class="tr">Drive</span></button>
+  <div class="mbot"><button class="mi" id="mTheme"></button></div>
 </nav>
 
 <div id="lb" hidden><img id="lbimg" alt=""></div>
@@ -334,28 +468,37 @@ async function renderSum(){
   const mc=[0,0,0,0];all.forEach(x=>mc[x.mood||0]++);
   const stp=all.filter(x=>x.steps!=null).map(x=>x.steps);
   const wts=all.filter(x=>x.weight!=null).map(x=>x.weight);
-  const stat=[`日記 ${all.length}件`];
-  if(mc[1]+mc[2]+mc[3])stat.push(`😊${mc[3]} 😐${mc[2]} 😞${mc[1]}`);
-  if(stp.length)stat.push(`平均 ${Math.round(stp.reduce((a,b)=>a+b,0)/stp.length).toLocaleString()}歩`);
-  if(wts.length)stat.push(`体重 ${wts[0]}→${wts[wts.length-1]}kg`);
-  $("sStat").textContent=stat.join("　");
+  const unitJa=sumUnit==="week"?"週":"月";
+  const avg=stp.length?Math.round(stp.reduce((a,b)=>a+b,0)/stp.length).toLocaleString():"—";
+  const wch=wts.length>1?((wts[wts.length-1]-wts[0]>0?"+":"")+(wts[wts.length-1]-wts[0]).toFixed(1)):"—";
+  $("sStat").innerHTML=`<div class="stats">
+    <article class="stat card"><div class="stat-l">記録した日 <i>▤</i></div><div class="stat-v">${all.length}<small>日</small></div><p class="stat-n">この${unitJa}のページ</p></article>
+    <article class="stat card"><div class="stat-l">平均歩数 <i>↗</i></div><div class="stat-v">${avg}<small>歩</small></div><p class="stat-n">入力のある日で計算</p></article>
+    <article class="stat card"><div class="stat-l">気分の記録 <i>☼</i></div><div class="pills"><span class="pill">😞<b>${mc[1]}</b></span><span class="pill">😐<b>${mc[2]}</b></span><span class="pill">😊<b>${mc[3]}</b></span></div></article>
+    <article class="stat card"><div class="stat-l">体重の変化 <i>⌁</i></div><div class="stat-v">${wch}<small>kg</small></div><p class="stat-n">${wts.length>1?`${wts[0]}→${wts[wts.length-1]}kg`:"記録が2件以上で表示"}</p></article>
+  </div>`;
+  const nowD=new Date();$("sEye").textContent=`${nowD.getFullYear()}年${nowD.getMonth()+1}月${nowD.getDate()}日 · ${WD[nowD.getDay()]}曜日`;
   // 一覧
   const box=$("sList");box.innerHTML="";
   if(!all.length){
-    const d=document.createElement("div");d.className="card sub";d.style.textAlign="center";
+    const d=document.createElement("div");d.className="card empty";
     d.textContent="この期間の日記はありません";box.appendChild(d);return;
   }
   all.forEach(x=>{
-    const c=document.createElement("div");c.className="card se";
+    const c=document.createElement("div");c.className="card ec";
     const dd=new Date(x.date+"T00:00:00");
-    const hd=document.createElement("div");hd.className="hd";
-    const l=document.createElement("span");l.textContent=`${dd.getMonth()+1}月${dd.getDate()}日(${WD[dd.getDay()]})`;
-    const r=document.createElement("span");r.textContent=`${x.wcode==null?"":WICON(x.wcode)} ${MOODS[x.mood]||""}`;
+    const badge=document.createElement("div");badge.className="ec-date";
+    badge.innerHTML="<strong></strong><small></small>";
+    badge.firstChild.textContent=dd.getDate();
+    badge.lastChild.textContent=`${dd.getMonth()+1}月 ${WD[dd.getDay()]}`;
+    const main=document.createElement("div");main.className="ec-main";
+    const hd=document.createElement("div");hd.className="ec-top";
+    const l=document.createElement("span");l.className="ec-mood";l.textContent=MOODS[x.mood]||"📖";
+    const r=document.createElement("span");r.className="ec-meta";
+    r.textContent=[x.wcode==null?"":`${WICON(x.wcode)} ${x.wtext||""}`,x.steps!=null?`👣${Number(x.steps).toLocaleString()}`:"",x.weight!=null?`⚖️${x.weight}kg`:""].filter(Boolean).join(" · ");
     hd.append(l,r);hd.onclick=()=>{load(x.date);scrollTo(0,0)};
-    c.appendChild(hd);
-    const vit=[x.steps!=null?`👣 ${Number(x.steps).toLocaleString()}歩`:"",x.weight!=null?`⚖️ ${x.weight}kg`:""].filter(Boolean).join("　");
-    if(vit){const v=document.createElement("div");v.className="vt sub";v.textContent=vit;c.appendChild(v)}
-    if((x.text||"").trim()){const t=document.createElement("div");t.className="tx";t.textContent=x.text;c.appendChild(t)}
+    main.appendChild(hd);
+    if((x.text||"").trim()){const t=document.createElement("p");t.className="ec-text";t.textContent=x.text;main.appendChild(t)}
     const ph=x.photos||(x.photo?[x.photo]:[]);
     if(ph.length){
       const g=document.createElement("div");g.className="photos";
@@ -365,10 +508,10 @@ async function renderSum(){
         const im=document.createElement("img");im.src=u;im.onclick=()=>openLb(b);
         w.appendChild(im);g.appendChild(w);
       });
-      c.appendChild(g);
+      main.appendChild(g);
     }
     const row=document.createElement("div");
-    row.className="row";row.style.cssText="margin-top:12px;justify-content:flex-end";
+    row.className="ec-act";
     const eb=document.createElement("button");eb.textContent="✏️ 編集";
     eb.onclick=async()=>{
       sumScroll=scrollY;
@@ -387,7 +530,8 @@ async function renderSum(){
       toast("削除しました");
       autoSync();
     };
-    row.append(dbtn,eb);c.appendChild(row);
+    row.append(dbtn,eb);main.appendChild(row);
+    c.append(badge,main);
     box.appendChild(c);
   });
   if(pendingScroll!=null){scrollTo(0,pendingScroll);pendingScroll=null}
@@ -520,15 +664,17 @@ async function refreshList(){
   entryMap=Object.fromEntries(a.map(e=>[e.date,e]));
   renderCal();
   $("list").innerHTML="";
-  if(!a.length){$("list").textContent="まだ日記がありません";return}
+  if(!a.length){$("list").innerHTML='<div class="card empty">まだ日記がありません</div>';return}
   a.forEach(e=>{
-    const d=document.createElement("div");d.className="item";
-    const m=MOODS[e.mood]||"";
-    const w=e.wcode==null?"":WICON(e.wcode);
-    const t=(e.text||"").replace(/\n/g," ").slice(0,40);
+    const d=document.createElement("div");d.className="card ec";d.style.cursor="pointer";
+    const dd=new Date(e.date+"T00:00:00");
     const hasPhoto=(e.photos&&e.photos.length)||e.photo;
-    d.innerHTML=`<small>${e.date} ${w} ${m}${hasPhoto?" 📷":""}</small><div></div>`;
-    d.lastChild.textContent=t||"（本文なし）";
+    d.innerHTML='<div class="ec-date"><strong></strong><small></small></div><div class="ec-main"><div class="ec-top"><span class="ec-mood"></span><span class="ec-meta"></span></div><p class="ec-text clamp"></p></div>';
+    d.querySelector("strong").textContent=dd.getDate();
+    d.querySelector("small").textContent=`${dd.getMonth()+1}月 ${WD[dd.getDay()]}`;
+    d.querySelector(".ec-mood").textContent=MOODS[e.mood]||"📖";
+    d.querySelector(".ec-meta").textContent=[e.wcode==null?"":WICON(e.wcode),hasPhoto?"📷":"",e.steps!=null?`👣${Number(e.steps).toLocaleString()}`:"",e.weight!=null?`⚖️${e.weight}kg`:""].filter(Boolean).join(" ");
+    d.querySelector(".ec-text").textContent=(e.text||"").trim()||"（本文なし）";
     d.onclick=()=>{load(e.date);scrollTo(0,0)};
     $("list").appendChild(d);
   });
@@ -802,7 +948,7 @@ function pickWeightKg(j){
   const k=keys.find(k=>/avg|last|max/i.test(k))||keys[0];
   return k?Math.round(+w[k]/100)/10:null; // g → kg（小数1桁）
 }
-async function fetchHealth(){
+async function fetchHealth(auto){
   const st=$("hstat"),d=cur.date,t0=cur;
   st.textContent="取得中…";
   try{
@@ -822,19 +968,27 @@ async function fetchHealth(){
     const msgs=[];
     if(rs.status==="fulfilled"){
       const c=rs.value.rollupDataPoints&&rs.value.rollupDataPoints[0]&&rs.value.rollupDataPoints[0].steps;
-      if(c&&c.countSum!=null&&!isNaN(+c.countSum)){$("steps").value=Math.round(+c.countSum);msgs.push(`歩数 ${Math.round(+c.countSum)}`)}
+      if(c&&c.countSum!=null&&!isNaN(+c.countSum)){if(!(auto&&$("steps").value!==""))$("steps").value=Math.round(+c.countSum);msgs.push(`歩数 ${Math.round(+c.countSum)}`)}
       else msgs.push("歩数：この日のデータなし\n"+JSON.stringify(rs.value).slice(0,200));
     }else msgs.push("歩数：取得できませんでした\n"+rs.reason.message);
     if(rw.status==="fulfilled"){
       const kg=pickWeightKg(rw.value);
-      if(kg!=null){$("weight").value=kg;msgs.push(`体重 ${kg}kg`)}
+      if(kg!=null){if(!(auto&&$("weight").value!==""))$("weight").value=kg;msgs.push(`体重 ${kg}kg`)}
       else msgs.push("体重：この日のデータなし（または形式が想定外）\n"+JSON.stringify(rw.value).slice(0,300));
     }else msgs.push("体重：取得できませんでした\n"+rw.reason.message);
     st.textContent=msgs.join("\n");
+    if(mode!=="edit"){cur.steps=$("steps").value===""?null:Math.round(+$("steps").value);cur.weight=$("weight").value===""?null:+$("weight").value}
     await save(true);
   }catch(e){st.textContent="取得エラー："+e.message}
 }
-$("hbtn").onclick=fetchHealth;
+$("hbtn").onclick=()=>fetchHealth();
+// 編集を開いたとき、空欄の歩数・体重を自動で取得（入力済みの欄は上書きしない）
+const autoHealthOn=()=>localStorage.getItem("autoHealth")!=="0";
+$("autoHealth").checked=autoHealthOn();
+$("autoHealth").onchange=e=>{try{localStorage.setItem("autoHealth",e.target.checked?"1":"0")}catch(_){}};
+$("edit").addEventListener("click",()=>setTimeout(()=>{
+  if(mode==="edit"&&autoHealthOn()&&localStorage.getItem("hconn")==="1"&&(cur.steps==null||cur.weight==null))fetchHealth(true);
+},0));
 ["steps","weight"].forEach(id=>{$(id).oninput=()=>{clearTimeout(tm);tm=setTimeout(()=>save(true),1500)}});
 
 // ---- events: 表示画面 ----
@@ -843,6 +997,7 @@ const menu=o=>{$("drawerBg").hidden=!o;$("drawer").hidden=!o};
 const goHome=()=>{sumRef=ymd(new Date());sumUnit="week";mode="sum";render();scrollTo(0,0)};
 $("menuBtn").onclick=()=>menu(true);
 $("drawerBg").onclick=()=>menu(false);
+$("mClose").onclick=()=>menu(false);
 $("mHome").onclick=()=>{menu(false);goHome()};
 $("mCal").onclick=async()=>{menu(false);await load(cur.date||ymd(new Date()));scrollTo(0,0)};
 const addToday=async()=>{menu(false);await load(ymd(new Date()));$("edit").click()};
@@ -855,7 +1010,7 @@ function applyTheme(t,save){
   document.documentElement.dataset.theme=t;
   const m=document.querySelector('meta[name="theme-color"]');
   if(m)m.content=t==="dark"?"#161a18":"#f4f4f0";
-  $("mTheme").textContent=t==="dark"?"☀️ ライトモードに切り替え":"🌙 ダークモードに切り替え";
+  $("mTheme").innerHTML=t==="dark"?'<span class="ic">☀</span>ライトモードに切り替え':'<span class="ic">☾</span>ダークモードに切り替え';
   if(save){try{localStorage.setItem("theme",t)}catch(e){}}
 }
 $("mTheme").onclick=()=>applyTheme(document.documentElement.dataset.theme==="dark"?"light":"dark",true);
