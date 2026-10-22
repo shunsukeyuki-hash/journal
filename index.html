@@ -71,10 +71,10 @@ input[type=date]{font-size:15px;padding:9px 11px;border-radius:13px;border:1px s
 .pill b{margin-left:3px}
 
 /* 日記カード（一覧・まとめ） */
-.ec{display:grid;grid-template-columns:43px 1fr;gap:12px;align-items:start;padding:15px;margin-bottom:9px}
-.ec-date{width:42px;height:50px;border-radius:13px;background:var(--soft);display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--acc)}
-.ec-date strong{line-height:1;font-size:18px}
-.ec-date small{font-size:9px;margin-top:4px}
+.ec{display:grid;grid-template-columns:84px 1fr;gap:12px;align-items:start;padding:15px;margin-bottom:9px}
+.ec-date{width:84px;height:80px;border-radius:18px;background:var(--soft);display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--acc)}
+.ec-date strong{line-height:1;font-size:42px}
+.ec-date small{font-size:16px;margin-top:5px}
 .ec-main{min-width:0}
 .ec-top{display:flex;justify-content:space-between;align-items:center;gap:8px;cursor:pointer}
 .ec-mood{font-size:18px}
@@ -96,8 +96,8 @@ input[type=date]{font-size:15px;padding:9px 11px;border-radius:13px;border:1px s
 .cw{font-size:10px;color:var(--sub);padding:4px 0 6px;text-align:center}
 .cw.sun,.cd.sun .n{color:var(--sun)}
 .cw.sat,.cd.sat .n{color:var(--sat)}
-.cd{height:64px;padding:0;border:1px solid transparent;border-radius:13px;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.1}
-.cd .n{font-size:12px}
+.cd{height:68px;padding:0;border:1px solid transparent;border-radius:13px;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.1}
+.cd .n{font-size:27px}
 .cd .m{font-size:11px;min-height:12px}
 .cd.has{background:var(--soft)}
 .cd.today{border-color:var(--acc)}
@@ -107,7 +107,7 @@ input[type=date]{font-size:15px;padding:9px 11px;border-radius:13px;border:1px s
 .legend i{width:7px;height:7px;border-radius:99px;display:inline-block;background:var(--acc);margin-right:5px}
 .datebar{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 .datebar button{padding:9px 12px;border-radius:12px;font-size:13px}
-#vDate{font-size:18px;font-weight:700}
+#vDate{font-size:36px;font-weight:700}
 #vEmpty{color:var(--sub);padding:18px 0 6px;text-align:center;font-size:13px}
 #vWeather{margin-top:6px;color:var(--sub);font-size:13px}
 #vMood{font-size:38px;margin-top:10px}
@@ -179,7 +179,7 @@ input[type=checkbox]#autoHealth{appearance:none;-webkit-appearance:none;width:44
 #msg span{background:#303a33;color:#fff;padding:11px 15px;border-radius:13px;font-size:12px;display:none;max-width:calc(100vw - 36px);box-shadow:0 8px 25px rgba(0,0,0,.22)}
 #lb{position:fixed;inset:0;background:rgba(15,20,17,.82);display:flex;align-items:center;justify-content:center;z-index:40;padding:18px}
 #lb img{max-width:100%;max-height:100%;border-radius:14px}
-@media(max-width:380px){main{padding-left:14px;padding-right:14px}.cd{height:60px}#sTitle{min-width:92px;font-size:11px}}
+@media(max-width:380px){main{padding-left:14px;padding-right:14px}.cd{height:66px}#sTitle{min-width:92px;font-size:11px}}
 @media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
 </style>
 </head>
