@@ -67,7 +67,7 @@ input[type=date]{font-size:15px;padding:9px 11px;border-radius:13px;border:1px s
 .stat-v small{font-size:11px;font-weight:550;letter-spacing:0;color:var(--sub);margin-left:4px}
 .stat-n{font-size:10px;color:var(--sub);margin:5px 0 0}
 .pills{display:flex;gap:6px;margin-top:12px}
-.pill{border:1px solid var(--line);background:var(--bg);padding:6px 8px;border-radius:99px;font-size:11px}
+.pill{display:flex;align-items:center;gap:3px;border:1px solid var(--line);background:var(--bg);padding:6px 8px;border-radius:99px;font-size:11px}
 .pill b{margin-left:3px}
 
 /* 日記カード（一覧・まとめ） */
@@ -131,7 +131,8 @@ input[type=date]{font-size:15px;padding:9px 11px;border-radius:13px;border:1px s
 .weather button{width:38px;height:38px;padding:0;border-radius:11px;color:var(--acc);font-size:17px}
 .moods{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
 .moods button{min-height:78px;padding:6px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:var(--sub)}
-.moods .face{font-size:26px;filter:saturate(.8)}
+.moods .face{display:block;line-height:0}.mimg{width:1em;height:1em;border-radius:50%;object-fit:cover;vertical-align:middle;display:inline-block}.moods .mimg{width:46px;height:46px}.moods button:not(.on) .mimg{opacity:.75}
+#vMood{font-size:0}#vMood .mimg{width:64px;height:64px}.ec-mood{line-height:0}.ec-mood .mimg{width:30px;height:30px}.cd .m{line-height:0}.cd .m .mimg{width:15px;height:15px}.pill .mimg{width:15px;height:15px;margin-right:2px}
 .moods small{font-size:10px}
 .moods button.on{border-color:var(--acc);background:var(--soft);color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
 .nums{display:grid;grid-template-columns:1fr 1fr;gap:9px}
@@ -303,9 +304,9 @@ input[type=checkbox]#autoHealth{appearance:none;-webkit-appearance:none;width:44
   <div class="fg">
     <div class="fl">今日の気分 <small>もう一度押すと解除</small></div>
     <div class="moods">
-      <button data-m="1"><span class="face">😞</span><small>悪い</small></button>
-      <button data-m="2"><span class="face">😐</span><small>ふつう</small></button>
-      <button data-m="3"><span class="face">😊</span><small>良い</small></button>
+      <button data-m="1"><span class="face"><img class="mimg" src="mood1.webp" alt="悪い"></span><small>悪い</small></button>
+      <button data-m="2"><span class="face"><img class="mimg" src="mood2.webp" alt="ふつう"></span><small>ふつう</small></button>
+      <button data-m="3"><span class="face"><img class="mimg" src="mood3.webp" alt="良い"></span><small>良い</small></button>
     </div>
   </div>
 
@@ -362,6 +363,7 @@ const $=id=>document.getElementById(id);
 const WCODE={0:"快晴",1:"晴れ",2:"晴れ時々くもり",3:"くもり",45:"霧",48:"霧",51:"小雨",53:"小雨",55:"雨",56:"着氷性の雨",57:"着氷性の雨",61:"雨",63:"雨",65:"強い雨",66:"凍雨",67:"凍雨",71:"小雪",73:"雪",75:"大雪",77:"雪",80:"にわか雨",81:"にわか雨",82:"激しいにわか雨",85:"にわか雪",86:"にわか雪",95:"雷雨",96:"雷雨",99:"雷雨"};
 const WICON=c=>c<=1?"☀️":c<=3?"⛅":c<=48?"🌫️":c<=67?"🌧️":c<=77?"❄️":c<=82?"🌦️":c<=86?"🌨️":"⛈️";
 const MOODS=["","😞","😐","😊"];
+const MI=m=>m?`<img class="mimg" src="mood${m}.webp" alt="${MOODS[m]}">`:"";
 
 // ---- IndexedDB ----
 let db;
@@ -422,7 +424,7 @@ function renderCal(){
     c.className="cd"+(wd===0?" sun":wd===6?" sat":"")+(e?" has":"")+(ds===cur.date?" sel":"")+(ds===today?" today":"");
     c.innerHTML='<span class="n"></span><span class="m"></span>';
     c.firstChild.textContent=d;
-    c.lastChild.textContent=e?(MOODS[e.mood]||"•"):"";
+    c.lastChild.innerHTML=e?(MI(e.mood)||"•"):"";
     c.onclick=()=>{load(ds);scrollTo(0,0)};
     g.appendChild(c);
   }
@@ -474,7 +476,7 @@ async function renderSum(){
   $("sStat").innerHTML=`<div class="stats">
     <article class="stat card"><div class="stat-l">記録した日 <i>▤</i></div><div class="stat-v">${all.length}<small>日</small></div><p class="stat-n">この${unitJa}のページ</p></article>
     <article class="stat card"><div class="stat-l">平均歩数 <i>↗</i></div><div class="stat-v">${avg}<small>歩</small></div><p class="stat-n">入力のある日で計算</p></article>
-    <article class="stat card"><div class="stat-l">気分の記録 <i>☼</i></div><div class="pills"><span class="pill">😞<b>${mc[1]}</b></span><span class="pill">😐<b>${mc[2]}</b></span><span class="pill">😊<b>${mc[3]}</b></span></div></article>
+    <article class="stat card"><div class="stat-l">気分の記録 <i>☼</i></div><div class="pills"><span class="pill">${MI(1)}<b>${mc[1]}</b></span><span class="pill">${MI(2)}<b>${mc[2]}</b></span><span class="pill">${MI(3)}<b>${mc[3]}</b></span></div></article>
     <article class="stat card"><div class="stat-l">体重の変化 <i>⌁</i></div><div class="stat-v">${wch}<small>kg</small></div><p class="stat-n">${wts.length>1?`${wts[0]}→${wts[wts.length-1]}kg`:"記録が2件以上で表示"}</p></article>
   </div>`;
   const nowD=new Date();$("sEye").textContent=`${nowD.getFullYear()}年${nowD.getMonth()+1}月${nowD.getDate()}日 · ${WD[nowD.getDay()]}曜日`;
@@ -493,7 +495,7 @@ async function renderSum(){
     badge.lastChild.textContent=`${dd.getMonth()+1}月 ${WD[dd.getDay()]}`;
     const main=document.createElement("div");main.className="ec-main";
     const hd=document.createElement("div");hd.className="ec-top";
-    const l=document.createElement("span");l.className="ec-mood";l.textContent=MOODS[x.mood]||"📖";
+    const l=document.createElement("span");l.className="ec-mood";l.innerHTML=MI(x.mood)||"📖";
     const r=document.createElement("span");r.className="ec-meta";
     r.textContent=[x.wcode==null?"":`${WICON(x.wcode)} ${x.wtext||""}`,x.steps!=null?`👣${Number(x.steps).toLocaleString()}`:"",x.weight!=null?`⚖️${x.weight}kg`:""].filter(Boolean).join(" · ");
     hd.append(l,r);hd.onclick=()=>{load(x.date);scrollTo(0,0)};
@@ -574,7 +576,7 @@ function render(){
     $("del").hidden=empty;
     $("edit").textContent=empty?"✏️ 日記を書く":"✏️ 編集";
     $("vWeather").textContent=wtxt;
-    $("vMood").textContent=MOODS[cur.mood]||"";
+    $("vMood").innerHTML=MI(cur.mood);
     $("vMood").hidden=!cur.mood;
     const vit=[cur.steps!=null?`👣 ${Number(cur.steps).toLocaleString()}歩`:"",cur.weight!=null?`⚖️ ${cur.weight}kg`:""].filter(Boolean).join("　");
     $("vVitals").textContent=vit;$("vVitals").hidden=!vit;
@@ -672,7 +674,7 @@ async function refreshList(){
     d.innerHTML='<div class="ec-date"><strong></strong><small></small></div><div class="ec-main"><div class="ec-top"><span class="ec-mood"></span><span class="ec-meta"></span></div><p class="ec-text clamp"></p></div>';
     d.querySelector("strong").textContent=dd.getDate();
     d.querySelector("small").textContent=`${dd.getMonth()+1}月 ${WD[dd.getDay()]}`;
-    d.querySelector(".ec-mood").textContent=MOODS[e.mood]||"📖";
+    d.querySelector(".ec-mood").innerHTML=MI(e.mood)||"📖";
     d.querySelector(".ec-meta").textContent=[e.wcode==null?"":WICON(e.wcode),hasPhoto?"📷":"",e.steps!=null?`👣${Number(e.steps).toLocaleString()}`:"",e.weight!=null?`⚖️${e.weight}kg`:""].filter(Boolean).join(" ");
     d.querySelector(".ec-text").textContent=(e.text||"").trim()||"（本文なし）";
     d.onclick=()=>{load(e.date);scrollTo(0,0)};
