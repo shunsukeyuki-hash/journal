@@ -1353,14 +1353,14 @@ $("gsync").onclick=()=>syncDrive();
 // ---- Googleヘルス（歩数・体重の取得） ----
 const HSCOPE="https://www.googleapis.com/auth/googlehealth.activity_and_fitness.readonly https://www.googleapis.com/auth/googlehealth.health_metrics_and_measurements.readonly";
 const gh={token:null,exp:0};
-async function getHealthToken(){
+async function getHealthToken(quiet){
   if(gh.token&&Date.now()<gh.exp-60000)return gh.token;
   const cid=localStorage.getItem("gcid");
   if(!cid)throw new Error("先に「Googleドライブ連携」でクライアントIDを保存してください");
   await loadGsi();
   return new Promise((res,rej)=>{
     const c=google.accounts.oauth2.initTokenClient({
-      client_id:cid,scope:HSCOPE,include_granted_scopes:false,
+      client_id:cid,scope:HSCOPE,include_granted_scopes:false,hint:localStorage.getItem("gemail")||undefined,
       callback:r=>{
         if(r.error)return rej(new Error("ログインに失敗しました（"+r.error+"）"));
         gh.token=r.access_token;gh.exp=Date.now()+(+r.expires_in||3600)*1000;
@@ -1368,7 +1368,7 @@ async function getHealthToken(){
       },
       error_callback:()=>rej(new Error("ログインが中断されました"))
     });
-    c.requestAccessToken({prompt:localStorage.getItem("hconn")?"":"consent"});
+    c.requestAccessToken({prompt:!localStorage.getItem("hconn")?"consent":(quiet&&localStorage.getItem("gemail")?"none":"")});
   });
 }
 function pickWeightKg(j){
@@ -1383,7 +1383,7 @@ async function fetchHealth(auto){
   const st=$("hstat"),d=cur.date,t0=cur;
   st.textContent="取得中…";
   try{
-    const token=await getHealthToken();
+    const token=await getHealthToken(auto);
     const [Y,M,Dd]=d.split("-").map(Number);
     const civil=(h,mi,s)=>({date:{year:Y,month:M,day:Dd},time:{hours:h,minutes:mi,seconds:s,nanos:0}});
     const body=JSON.stringify({range:{start:civil(0,0,0),end:civil(23,59,59)},windowSizeDays:1});
@@ -1410,7 +1410,7 @@ async function fetchHealth(auto){
     st.textContent=msgs.join("\n");
     if(mode!=="edit"){cur.steps=$("steps").value===""?null:Math.round(+$("steps").value);cur.weight=$("weight").value===""?null:+$("weight").value}
     await save(true);
-  }catch(e){st.textContent="取得エラー："+e.message}
+  }catch(e){st.textContent=auto?"自動取得できませんでした（「取得」ボタンで手動取得できます）":"取得エラー："+e.message}
 }
 $("hbtn").onclick=()=>fetchHealth();
 // 編集を開いたとき、空欄の歩数・体重を自動で取得（入力済みの欄は上書きしない）
