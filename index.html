@@ -175,11 +175,23 @@ input[type=checkbox]#autoHealth{appearance:none;-webkit-appearance:none;width:44
 
 /* FAB・トースト・拡大表示 */
 #fab{position:fixed;right:max(20px,calc((100vw - 640px)/2 + 20px));bottom:calc(22px + env(safe-area-inset-bottom));width:58px;height:58px;padding:0;border-radius:20px;border:0;background:var(--acc);color:var(--onacc);font-size:calc(31px*var(--fs));font-weight:300;line-height:1;display:grid;place-items:center;box-shadow:0 9px 24px color-mix(in srgb,var(--acc) 38%,transparent);z-index:4}
-#msg{position:fixed;left:0;right:0;bottom:calc(92px + env(safe-area-inset-bottom));text-align:center;pointer-events:none;z-index:30}
+#msg{position:fixed;left:0;right:0;bottom:calc(92px + env(safe-area-inset-bottom));text-align:center;pointer-events:none;z-index:70}
 #msg span{background:#303a33;color:#fff;padding:11px 15px;border-radius:13px;font-size:calc(12px*var(--fs));display:none;max-width:calc(100vw - 36px);box-shadow:0 8px 25px rgba(0,0,0,.22)}
 #lb{position:fixed;inset:0;background:rgba(15,20,17,.82);display:flex;align-items:center;justify-content:center;z-index:40;padding:18px}
 #lb img{max-width:100%;max-height:100%;border-radius:14px}
 
+
+/* ひみつの日記 */
+#vault{position:fixed;inset:0;z-index:60;background:var(--bg);overflow-y:auto}
+.vwrap{max-width:640px;margin:0 auto;padding:0 18px calc(60px + env(safe-area-inset-bottom))}
+.vtop{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:max(10px,env(safe-area-inset-top)) 0 10px;background:var(--bg);border-bottom:1px solid var(--line);margin-bottom:18px}
+.vtop b{font-size:calc(15px*var(--fs))}
+.vtop button{padding:8px 13px}
+.vtools{display:grid;gap:8px;margin-top:22px}
+.vtools button{text-align:left;padding:12px 14px;font-size:calc(13px*var(--fs))}
+#vErr{color:#a15446;font-size:calc(13px*var(--fs));min-height:1.4em;margin:8px 2px}
+[data-theme="dark"] #vErr{color:#e0958d}
+#vault input[type=password]{width:100%;font-size:16px;padding:13px 14px;border-radius:13px;border:1px solid var(--line);background:var(--bg);color:var(--ink);margin-top:10px;outline-color:var(--acc)}
 /* 検索・グラフ・過去の今日 */
 .mfs{display:flex;gap:10px}
 .mfs button{padding:5px;border-radius:50%;line-height:0;border:2px solid transparent;background:transparent;opacity:.55}
@@ -409,6 +421,54 @@ input[type=checkbox]#autoHealth{appearance:none;-webkit-appearance:none;width:44
   <button class="mi" id="mSync"><span class="ic">↻</span>今すぐ同期<span class="tr">Drive</span></button>
   <div class="mbot"><button class="mi" id="mTheme"></button></div>
 </nav>
+
+<!-- ========== ひみつの日記（暗号化・入口はロゴの連打） ========== -->
+<div id="vault" hidden>
+ <div class="vwrap">
+  <div class="vtop"><button id="vBack">‹ 戻る</button><b>🔒 ひみつの日記</b><button id="vLockBtn" aria-label="ロックして閉じる">閉じる</button></div>
+
+  <div id="vForm">
+    <div class="card">
+      <h2 id="vFTitle" style="margin:0 0 6px;font-size:calc(20px*var(--fs))"></h2>
+      <p id="vFNote" class="page-sub"></p>
+      <input type="password" id="vPw" autocomplete="new-password" placeholder="パスワード">
+      <input type="password" id="vPw2" autocomplete="new-password" placeholder="もう一度入力">
+      <div id="vErr"></div>
+      <button class="pri" id="vGo" style="width:100%;min-height:50px">開く</button>
+    </div>
+  </div>
+
+  <div id="vListV" hidden>
+    <button class="pri" id="vAdd" style="width:100%;min-height:54px;font-size:calc(16px*var(--fs));border-radius:17px">＋ ひみつの日記を書く</button>
+    <div class="sec-title"><span id="vCount"></span></div>
+    <div id="vList"></div>
+    <div class="vtools">
+      <button id="vExport">暗号化バックアップを書き出す</button>
+      <button id="vImport">バックアップを読み込む（いまの内容と入れ替え）</button>
+      <input type="file" id="vFile" accept=".json,application/json" hidden>
+      <button id="vChange">パスワードを変更する</button>
+    </div>
+  </div>
+
+  <div id="vEdit" hidden>
+    <div class="fl">日付</div>
+    <div class="card" style="padding:12px 14px"><input type="date" id="vDateIn" style="width:100%;border:0;background:transparent;padding:0"></div>
+    <div class="fl" style="margin-top:6px">今日の気分</div>
+    <div class="moods" id="vMoods">
+      <button data-m="1"><span class="face"><img class="mimg" src="mood1v2.webp" alt="悪い"></span><small>悪い</small></button>
+      <button data-m="2"><span class="face"><img class="mimg" src="mood2v2.webp" alt="ふつう"></span><small>ふつう</small></button>
+      <button data-m="3"><span class="face"><img class="mimg" src="mood3v2.webp" alt="良い"></span><small>良い</small></button>
+    </div>
+    <div class="fl" style="margin-top:18px">内容</div>
+    <textarea id="vxText" placeholder="ここだけの話…"></textarea>
+    <div class="fl" style="margin-top:18px">写真 <small>最大3枚</small></div>
+    <div class="card" style="padding:13px"><button id="vPbtn">＋ 写真を追加（0/3）</button><input type="file" id="vPfile" accept="image/*" multiple hidden><div id="vxPhotos" class="photos"></div></div>
+    <button class="pri" id="vDone" style="display:block;width:100%;min-height:56px;font-size:calc(16px*var(--fs));border-radius:17px;margin-top:22px">✓ 完了</button>
+    <button class="danger" id="vDel" style="display:block;margin:14px auto 0">この日記を削除</button>
+    <div class="note" style="text-align:center">入力内容は暗号化して自動で保存されます。</div>
+  </div>
+ </div>
+</div>
 
 <div id="lb" hidden><img id="lbimg" alt=""></div>
 <div id="msg"><span></span></div>
@@ -772,7 +832,7 @@ function render(){
   }else{
     $("eDate").value=cur.date;$("eDate").max=ymd(new Date());
     $("weather").textContent=cur.wcode==null?"天気：未取得":wtxt;
-    document.querySelectorAll(".moods button").forEach(b=>b.classList.toggle("on",+b.dataset.m===cur.mood));
+    document.querySelectorAll("#editScreen .moods button").forEach(b=>b.classList.toggle("on",+b.dataset.m===cur.mood));
     photoGrid($("photos"),true);
     $("pbtn").textContent=`📷 写真を追加（${cur.photos.length}/3）`;
   }
@@ -1262,7 +1322,7 @@ $("imp").onclick=()=>$("cfile").click();
 $("cfile").onchange=e=>{if(e.target.files[0])importCSV(e.target.files[0]);e.target.value=""};
 
 // ---- events: 編集画面 ----
-document.querySelectorAll(".moods button").forEach(b=>b.onclick=()=>{
+document.querySelectorAll("#editScreen .moods button").forEach(b=>b.onclick=()=>{
   const m=+b.dataset.m;cur.mood=cur.mood===m?0:m;render();save(true);
 });
 $("wbtn").onclick=()=>fetchWeather();
@@ -1310,6 +1370,233 @@ $("done").onclick=async()=>{
   toast("保存しました");
   autoSync(true);
 };
+
+// ================= ひみつの日記（パスワード＋AES-GCM暗号化） =================
+// ・通常の日記とは別のデータベースに保存。一覧・検索・グラフ・CSV・ドライブ同期には一切出ません。
+// ・パスワードから鍵を作り、鍵は画面メモリ上だけに置きます（保存しません）。
+const V={db:null,key:null,items:[],cur:null,tm:null,hiddenAt:0,urls:[],mode:"unlock"};
+const VITER=400000, TE=new TextEncoder(), TD=new TextDecoder();
+let vTaps=[];
+const vdb=()=>V.db?Promise.resolve(V.db):new Promise((res,rej)=>{
+  const r=indexedDB.open("journal-vault",1);
+  r.onupgradeneeded=()=>{r.result.createObjectStore("meta");r.result.createObjectStore("items",{keyPath:"id"})};
+  r.onsuccess=()=>{V.db=r.result;res(V.db)};r.onerror=()=>rej(r.error);
+});
+const vtx=(store,mode,fn)=>vdb().then(db=>new Promise((res,rej)=>{
+  const t=db.transaction(store,mode),rq=fn(t.objectStore(store));
+  t.oncomplete=()=>res(rq&&rq.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error);
+}));
+async function vDerive(pw,salt,iter){
+  const base=await crypto.subtle.importKey("raw",TE.encode(pw),"PBKDF2",false,["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:iter,hash:"SHA-256"},base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+}
+async function vEnc(bytes,key){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM",iv},key||V.key,bytes));
+  return {iv,ct};
+}
+const vDec=async(o,key)=>new Uint8Array(await crypto.subtle.decrypt({name:"AES-GCM",iv:new Uint8Array(o.iv)},key||V.key,new Uint8Array(o.ct)));
+const vShow=v=>{["vForm","vListV","vEdit"].forEach(id=>$(id).hidden=id!==v)};
+const vErr=m=>{$("vErr").textContent=m||""};
+
+async function vaultOpen(){
+  $("vault").hidden=false;$("vault").scrollTop=0;
+  V.key=null;V.items=[];
+  try{
+    const meta=await vtx("meta","readonly",s=>s.get("v"));
+    vForm(meta?"unlock":"setup");
+  }catch(e){vForm("unlock");vErr("この環境では使えません（"+e.message+"）")}
+}
+function vForm(mode){
+  V.mode=mode;vShow("vForm");vErr("");$("vPw").value="";$("vPw2").value="";
+  const two=mode!=="unlock";
+  $("vPw2").hidden=!two;
+  $("vFTitle").textContent=mode==="unlock"?"パスワードを入力":mode==="setup"?"はじめにパスワードを決めます":"新しいパスワード";
+  $("vFNote").textContent=mode==="unlock"?"":mode==="setup"
+    ?"6文字以上。パスワードは保存されません。忘れると、ひみつの日記は誰にも（開発者にも）復元できません。":"6文字以上。変更後、すべての内容を新しいパスワードで暗号化し直します。";
+  $("vGo").textContent=mode==="unlock"?"開く":mode==="setup"?"決定して開く":"変更する";
+  setTimeout(()=>$("vPw").focus(),50);
+}
+async function vGo(){
+  const pw=$("vPw").value;vErr("");
+  if(!pw)return;
+  $("vGo").disabled=true;
+  try{
+    if(V.mode==="unlock"){
+      const meta=await vtx("meta","readonly",s=>s.get("v"));
+      const key=await vDerive(pw,new Uint8Array(meta.salt),meta.iter);
+      try{const ok=TD.decode(await vDec(meta.ver,key));if(ok!=="vault-ok")throw 0}catch(e){vErr("パスワードが違います");return}
+      V.key=key;await vLoad();vList();
+    }else{
+      if(pw.length<6){vErr("6文字以上にしてください");return}
+      if(pw!==$("vPw2").value){vErr("2つのパスワードが一致しません");return}
+      const salt=crypto.getRandomValues(new Uint8Array(16));
+      const key=await vDerive(pw,salt,VITER);
+      const ver=await vEnc(TE.encode("vault-ok"),key);
+      if(V.mode==="setup"){
+        await vtx("meta","readwrite",s=>s.put({salt,iter:VITER,ver},"v"));
+        V.key=key;V.items=[];vList();
+      }else{ // change
+        const recs=[];
+        for(const it of V.items){
+          const photos=[];
+          for(const ph of it.photos){const raw=await vDec(ph);const e=await vEnc(raw,key);photos.push({iv:e.iv,ct:e.ct,type:ph.type})}
+          const m=await vEnc(TE.encode(JSON.stringify({date:it.date,mood:it.mood,text:it.text,updated:it.updated})),key);
+          recs.push({id:it.id,m,p:photos});
+        }
+        const db=await vdb();
+        await new Promise((res,rej)=>{
+          const t=db.transaction(["meta","items"],"readwrite");
+          t.objectStore("meta").put({salt,iter:VITER,ver},"v");
+          const st=t.objectStore("items");recs.forEach(r=>st.put(r));
+          t.oncomplete=res;t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error);
+        });
+        V.key=key;await vLoad();vList();toast("パスワードを変更しました");
+      }
+    }
+  }catch(e){vErr("うまくいきませんでした："+e.message)}
+  finally{$("vGo").disabled=false;$("vPw").value="";$("vPw2").value=""}
+}
+async function vLoad(){
+  const recs=await vtx("items","readonly",s=>s.getAll());
+  const out=[];
+  for(const r of recs){
+    try{const m=JSON.parse(TD.decode(await vDec(r.m)));out.push({id:r.id,...m,photos:r.p||[]})}catch(e){}
+  }
+  V.items=out.sort((a,b)=>(b.date.localeCompare(a.date))||((b.updated||"").localeCompare(a.updated||"")));
+}
+function vList(){
+  vShow("vListV");
+  $("vCount").textContent=V.items.length?`${V.items.length}件`:"";
+  const box=$("vList");box.innerHTML="";
+  if(!V.items.length){box.innerHTML='<div class="card empty">まだひみつの日記はありません。</div>';return}
+  V.items.forEach(it=>{
+    const c=listCard({date:it.date,mood:it.mood,text:it.text,photos:it.photos},3);
+    c.onclick=()=>vEdit(it);
+    box.appendChild(c);
+  });
+}
+function vPaint(){
+  V.urls.forEach(u=>URL.revokeObjectURL(u));V.urls=[];
+  const box=$("vxPhotos");box.innerHTML="";
+  V.cur.photos.forEach((p,i)=>{
+    const d=document.createElement("div");d.className="ph";
+    const u=URL.createObjectURL(p.blob);V.urls.push(u);
+    const im=document.createElement("img");im.src=u;im.onclick=()=>openLb(p.blob);
+    const x=document.createElement("button");x.textContent="×";
+    x.onclick=e=>{e.stopPropagation();V.cur.photos.splice(i,1);vPaint();vQueue()};
+    d.append(im,x);box.appendChild(d);
+  });
+  $("vPbtn").textContent=`＋ 写真を追加（${V.cur.photos.length}/3）`;
+  document.querySelectorAll("#vMoods button").forEach(b=>b.classList.toggle("on",+b.dataset.m===V.cur.mood));
+}
+async function vEdit(it){
+  const cur={id:it?it.id:crypto.randomUUID(),isNew:!it,date:it?it.date:ymd(new Date()),mood:it?it.mood:0,text:it?it.text:"",photos:[],updated:""};
+  if(it){for(const ph of it.photos){const raw=await vDec(ph);cur.photos.push({blob:new Blob([raw],{type:ph.type||"image/jpeg"}),type:ph.type||"image/jpeg",enc:ph})}}
+  V.cur=cur;
+  $("vDateIn").value=cur.date;$("vDateIn").max=ymd(new Date());$("vxText").value=cur.text;
+  $("vDel").hidden=!it;
+  vShow("vEdit");vPaint();$("vault").scrollTop=0;
+}
+const vBlank=c=>!(c.text||"").trim()&&!c.mood&&!c.photos.length;
+async function vSaveCur(){
+  clearTimeout(V.tm);
+  const c=V.cur;if(!c||!V.key)return;
+  c.date=$("vDateIn").value||c.date;c.text=$("vxText").value;
+  if(vBlank(c)){
+    await vtx("items","readwrite",s=>s.delete(c.id));
+    V.items=V.items.filter(x=>x.id!==c.id);return;
+  }
+  c.updated=new Date().toISOString();
+  const photos=[];
+  for(const p of c.photos){
+    if(!p.enc){const raw=new Uint8Array(await p.blob.arrayBuffer());const e=await vEnc(raw);p.enc={iv:e.iv,ct:e.ct,type:p.type}}
+    photos.push(p.enc);
+  }
+  const m=await vEnc(TE.encode(JSON.stringify({date:c.date,mood:c.mood,text:c.text,updated:c.updated})));
+  await vtx("items","readwrite",s=>s.put({id:c.id,m,p:photos}));
+  const item={id:c.id,date:c.date,mood:c.mood,text:c.text,updated:c.updated,photos};
+  V.items=[item,...V.items.filter(x=>x.id!==c.id)].sort((a,b)=>(b.date.localeCompare(a.date))||((b.updated||"").localeCompare(a.updated||"")));
+  $("vDel").hidden=false;
+}
+const vQueue=()=>{clearTimeout(V.tm);V.tm=setTimeout(()=>vSaveCur().catch(()=>toast("保存できませんでした")),1500)};
+async function vFlush(){try{if(V.cur&&!$("vEdit").hidden)await vSaveCur()}catch(e){}}
+async function vLock(){
+  await vFlush();
+  clearTimeout(V.tm);
+  V.key=null;V.items=[];V.cur=null;
+  V.urls.forEach(u=>URL.revokeObjectURL(u));V.urls=[];
+  $("vxText").value="";$("vxPhotos").innerHTML="";$("vList").innerHTML="";$("vPw").value="";$("vPw2").value="";
+  $("vault").hidden=true;
+}
+const b64=u8=>{let s="";const a=new Uint8Array(u8);for(let i=0;i<a.length;i+=0x8000)s+=String.fromCharCode.apply(null,a.subarray(i,i+0x8000));return btoa(s)};
+const unb64=t=>Uint8Array.from(atob(t),c=>c.charCodeAt(0));
+async function vExport(){
+  const meta=await vtx("meta","readonly",s=>s.get("v"));
+  const items=await vtx("items","readonly",s=>s.getAll());
+  const enc=o=>({iv:b64(o.iv),ct:b64(o.ct)});
+  const data={v:1,meta:{salt:b64(meta.salt),iter:meta.iter,ver:enc(meta.ver)},items:items.map(r=>({id:r.id,m:enc(r.m),p:(r.p||[]).map(x=>({...enc(x),type:x.type}))}))};
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:"application/json"}));
+  a.download=`backup-${ymd(new Date()).replace(/-/g,"")}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  toast("暗号化バックアップを書き出しました");
+}
+async function vImport(file){
+  try{
+    const d=JSON.parse(await file.text());
+    if(d.v!==1||!d.meta||!Array.isArray(d.items))throw new Error("形式が違います");
+    if(!confirm("いまのひみつの日記は、このバックアップの内容に入れ替わります。よろしいですか？"))return;
+    const dec=o=>({iv:unb64(o.iv),ct:unb64(o.ct)});
+    const meta={salt:unb64(d.meta.salt),iter:d.meta.iter,ver:dec(d.meta.ver)};
+    const recs=d.items.map(r=>({id:r.id,m:dec(r.m),p:(r.p||[]).map(x=>({...dec(x),type:x.type}))}));
+    const db=await vdb();
+    await new Promise((res,rej)=>{
+      const t=db.transaction(["meta","items"],"readwrite");
+      t.objectStore("meta").put(meta,"v");const st=t.objectStore("items");st.clear();recs.forEach(r=>st.put(r));
+      t.oncomplete=res;t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error);
+    });
+    V.key=null;V.items=[];vForm("unlock");toast("読み込みました。バックアップのパスワードで開いてください");
+  }catch(e){toast("読み込めませんでした："+e.message)}
+}
+// 入口：ロゴを2.5秒以内に5回タップ（メニューには出しません）
+$("brand").addEventListener("click",()=>{
+  const now=Date.now();vTaps=vTaps.filter(t=>now-t<2500);vTaps.push(now);
+  if(vTaps.length>=5){vTaps=[];vaultOpen()}
+});
+$("vGo").onclick=vGo;
+$("vPw").onkeydown=$("vPw2").onkeydown=e=>{if(e.key==="Enter")vGo()};
+$("vBack").onclick=async()=>{
+  if(!$("vEdit").hidden){await vFlush();vList();return}
+  if(!$("vForm").hidden&&V.key&&V.mode==="change"){vList();return}
+  vLock();
+};
+$("vLockBtn").onclick=()=>vLock();
+$("vAdd").onclick=()=>vEdit(null);
+$("vDone").onclick=async()=>{await vFlush();vList()};
+$("vDel").onclick=async()=>{
+  if(!confirm("このひみつの日記を削除しますか？（元に戻せません）"))return;
+  clearTimeout(V.tm);
+  await vtx("items","readwrite",s=>s.delete(V.cur.id));
+  V.items=V.items.filter(x=>x.id!==V.cur.id);V.cur=null;vList();
+};
+$("vxText").oninput=vQueue;
+$("vDateIn").onchange=vQueue;
+document.querySelectorAll("#vMoods button").forEach(b=>b.onclick=()=>{const m=+b.dataset.m;V.cur.mood=V.cur.mood===m?0:m;vPaint();vQueue()});
+$("vPbtn").onclick=()=>{if(V.cur.photos.length>=3)return toast("写真は3枚までです");$("vPfile").click()};
+$("vPfile").onchange=async e=>{
+  const fs=[...e.target.files];e.target.value="";
+  const room=3-V.cur.photos.length;
+  for(const f of fs.slice(0,room)){const b=await resize(f);V.cur.photos.push({blob:b,type:"image/jpeg"})}
+  vPaint();vQueue();
+};
+$("vExport").onclick=vExport;
+$("vImport").onclick=()=>$("vFile").click();
+$("vFile").onchange=e=>{if(e.target.files[0])vImport(e.target.files[0]);e.target.value=""};
+$("vChange").onclick=()=>vForm("change");
+// アプリから離れて60秒以上たったら自動でロック
+document.addEventListener("visibilitychange",()=>{
+  if(document.hidden){V.hiddenAt=Date.now()}
+  else if(V.key&&Date.now()-V.hiddenAt>60000)vLock();
+});
 
 // ---- 永続ストレージ（ブラウザによる自動削除を防ぐ） ----
 async function protectStorage(){

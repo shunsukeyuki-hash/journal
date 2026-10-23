@@ -1,4 +1,4 @@
-const CACHE = "journal-v7";
+const CACHE = "journal-v8";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
