@@ -179,6 +179,21 @@ input[type=checkbox]#autoHealth{appearance:none;-webkit-appearance:none;width:44
 #msg span{background:#303a33;color:#fff;padding:11px 15px;border-radius:13px;font-size:calc(12px*var(--fs));display:none;max-width:calc(100vw - 36px);box-shadow:0 8px 25px rgba(0,0,0,.22)}
 #lb{position:fixed;inset:0;background:rgba(15,20,17,.82);display:flex;align-items:center;justify-content:center;z-index:40;padding:18px}
 #lb img{max-width:100%;max-height:100%;border-radius:14px}
+
+/* 検索・グラフ・過去の今日 */
+.mfs{display:flex;gap:10px}
+.mfs button{padding:5px;border-radius:50%;line-height:0;border:2px solid transparent;background:transparent;opacity:.55}
+.mfs button.on{opacity:1;border-color:var(--acc);background:var(--soft)}
+.mfs .mimg{width:52px;height:52px}
+.frow{display:flex;gap:8px;align-items:center}
+.frow input[type=date]{flex:1;min-width:0}
+.cc{padding:12px 10px 8px}
+.cc svg{width:100%;height:auto;display:block}
+.cc text{fill:var(--sub);font-family:inherit}
+.ct{display:flex;justify-content:space-between;align-items:baseline;margin:18px 2px 8px;font-size:calc(15px*var(--fs));font-weight:700}
+.ct small{font-weight:400;color:var(--sub);font-size:calc(12px*var(--fs))}
+.otd .ec{cursor:pointer}
+.hl{background:var(--soft);border-radius:4px}
 @media(max-width:380px){main{padding-left:14px;padding-right:14px}.cd{height:56px}#sTitle{min-width:92px;font-size:calc(11px*var(--fs))}}
 @media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
 </style>
@@ -282,6 +297,7 @@ input[type=checkbox]#autoHealth{appearance:none;-webkit-appearance:none;width:44
 <!-- ========== まとめ画面（ホーム） ========== -->
 <section id="sumScreen" hidden>
   <div class="page-head"><div class="eyebrow" id="sEye"></div><h2>日々のかけら</h2><p class="page-sub">今日も、自分のための一ページを。</p></div>
+  <div id="otd" class="otd"></div>
   <div class="card period">
     <div class="seg"><button id="uweek">週</button><button id="umonth">月</button></div>
     <div class="pnav">
@@ -293,6 +309,35 @@ input[type=checkbox]#autoHealth{appearance:none;-webkit-appearance:none;width:44
   <div id="sStat"></div>
   <div class="sec-title"><span>日記の一覧</span></div>
   <div id="sList"></div>
+</section>
+
+
+<!-- ========== 検索画面 ========== -->
+<section id="findScreen" hidden>
+  <div class="page-head"><div class="eyebrow">SEARCH</div><h2>日記を探す</h2><p class="page-sub">キーワード・気分・期間で絞り込めます。</p></div>
+  <div class="card">
+    <input type="text" id="fq" placeholder="キーワード（本文から探す）" autocomplete="off">
+    <div class="fl" style="margin-top:16px">気分 <small>タップで絞り込み（複数可）</small></div>
+    <div class="mfs" id="fMoods">
+      <button data-m="1" aria-label="悪い"><img class="mimg" src="mood1v2.webp" alt="悪い"></button>
+      <button data-m="2" aria-label="ふつう"><img class="mimg" src="mood2v2.webp" alt="ふつう"></button>
+      <button data-m="3" aria-label="良い"><img class="mimg" src="mood3v2.webp" alt="良い"></button>
+    </div>
+    <div class="fl" style="margin-top:16px">期間</div>
+    <div class="frow"><input type="date" id="ffrom"><span class="sub">〜</span><input type="date" id="fto"></div>
+    <button class="txtbtn" id="fclear" style="margin-top:6px">条件をクリア</button>
+  </div>
+  <div class="sec-title"><span id="fcount"></span></div>
+  <div id="fList"></div>
+</section>
+
+<!-- ========== グラフ画面 ========== -->
+<section id="chartScreen" hidden>
+  <div class="page-head"><div class="eyebrow">TRENDS</div><h2>グラフ</h2><p class="page-sub">体重・歩数・気分の移り変わり。</p></div>
+  <div class="card period">
+    <div class="seg"><button id="cr30">30日</button><button id="cr90">90日</button><button id="cr365">1年</button></div>
+  </div>
+  <div id="chartBox"></div>
 </section>
 
 <!-- ========== 編集画面 ========== -->
@@ -357,6 +402,8 @@ input[type=checkbox]#autoHealth{appearance:none;-webkit-appearance:none;width:44
   <button class="mi" id="mAdd"><span class="ic">✎</span>今日の日記を書く<span class="tr">→</span></button>
   <button class="mi" id="mHome"><span class="ic">▤</span>週・月まとめ<span class="tr">→</span></button>
   <button class="mi" id="mCal"><span class="ic">▦</span>カレンダー・日別<span class="tr">→</span></button>
+  <button class="mi" id="mFind"><span class="ic">⌕</span>日記を探す<span class="tr">→</span></button>
+  <button class="mi" id="mChart"><span class="ic">∿</span>グラフ<span class="tr">→</span></button>
   <button class="mi" id="mSet"><span class="ic">⚙</span>設定・データ（CSV）<span class="tr">→</span></button>
   <div class="ml">データ</div>
   <button class="mi" id="mSync"><span class="ic">↻</span>今すぐ同期<span class="tr">Drive</span></button>
@@ -472,8 +519,19 @@ async function renderSum(){
     :`${sd.getFullYear()}年${sd.getMonth()+1}月`;
   $("uweek").classList.toggle("pri",sumUnit==="week");
   $("umonth").classList.toggle("pri",sumUnit==="month");
-  const all=(await allE()).filter(x=>x.date>=s&&x.date<=e).sort((a,b)=>a.date.localeCompare(b.date));
+  const every=await allE();
+  const all=every.filter(x=>x.date>=s&&x.date<=e).sort((a,b)=>a.date.localeCompare(b.date));
   if(tok!==sumTok||mode!=="sum")return;
+  // 過去の今日（同じ月日の過去の日記）
+  {
+    const t=ymd(new Date()), md=t.slice(5), yy=+t.slice(0,4);
+    const past=every.filter(x=>x.date.slice(5)===md&&+x.date.slice(0,4)<yy&&!isEmpty({...x,photos:x.photos||[]})).sort((a,b)=>b.date.localeCompare(a.date));
+    const box=$("otd");box.innerHTML="";
+    if(past.length){
+      const h=document.createElement("div");h.className="sec-title";h.style.marginTop="4px";h.innerHTML="<span>🕰 過去の今日</span>";box.appendChild(h);
+      past.slice(0,3).forEach(x=>box.appendChild(listCard(x,2,yy-(+x.date.slice(0,4)))));
+    }
+  }
   // 集計
   const mc=[0,0,0,0];all.forEach(x=>mc[x.mood||0]++);
   const stp=all.filter(x=>x.steps!=null).map(x=>x.steps);
@@ -547,6 +605,121 @@ async function renderSum(){
   if(pendingScroll!=null){scrollTo(0,pendingScroll);pendingScroll=null}
 }
 
+// ---- 共通：日記カード（検索・過去の今日） ----
+function listCard(e,lines,yearsAgo){
+  const d=document.createElement("div");d.className="card ec";d.style.cursor="pointer";
+  const dd=new Date(e.date+"T00:00:00");
+  const hasPhoto=(e.photos&&e.photos.length)||e.photo;
+  d.innerHTML='<div class="ec-date"><strong></strong><small></small></div><div class="ec-main"><div class="ec-top"><span class="ec-mood"></span><span class="ec-meta"></span></div><p class="ec-text clamp"></p></div>';
+  d.querySelector("strong").textContent=yearsAgo?yearsAgo:dd.getDate();
+  d.querySelector("small").textContent=yearsAgo?"年前":`${dd.getMonth()+1}月 ${WD[dd.getDay()]}`;
+  d.querySelector(".ec-mood").innerHTML=MI(e.mood)||"📖";
+  d.querySelector(".ec-meta").textContent=[yearsAgo?`${dd.getFullYear()}/${dd.getMonth()+1}/${dd.getDate()}`:`${dd.getFullYear()}年`,e.wcode==null?"":WICON(e.wcode),hasPhoto?"📷":"",e.steps!=null?`👣${Number(e.steps).toLocaleString()}`:"",e.weight!=null?`⚖️${e.weight}kg`:""].filter(Boolean).join(" ");
+  const tx=d.querySelector(".ec-text");tx.textContent=(e.text||"").trim()||"（本文なし）";
+  if(lines)tx.style.webkitLineClamp=String(lines);
+  d.onclick=()=>{load(e.date);scrollTo(0,0)};
+  return d;
+}
+
+// ---- 検索 ----
+let fTok=0;const fMood=new Set();
+async function renderFind(){
+  const tok=++fTok;
+  const q=$("fq").value.trim().toLowerCase(), from=$("ffrom").value, to=$("fto").value;
+  document.querySelectorAll("#fMoods button").forEach(b=>b.classList.toggle("on",fMood.has(+b.dataset.m)));
+  const cond=!!(q||from||to||fMood.size);
+  const box=$("fList");
+  if(!cond){box.innerHTML='<div class="card empty">キーワードを入れるか、気分・期間を選んでください。</div>';$("fcount").textContent="";return}
+  const a=(await allE()).filter(e=>{
+    if(from&&e.date<from)return false;
+    if(to&&e.date>to)return false;
+    if(fMood.size&&!fMood.has(e.mood))return false;
+    if(q&&!(e.text||"").toLowerCase().includes(q))return false;
+    return true;
+  }).sort((x,y)=>y.date.localeCompare(x.date));
+  if(tok!==fTok||mode!=="find")return;
+  $("fcount").textContent=`${a.length}件見つかりました`+(a.length>100?"（新しい100件を表示）":"");
+  box.innerHTML="";
+  if(!a.length){box.innerHTML='<div class="card empty">該当する日記はありません。</div>';return}
+  a.slice(0,100).forEach(e=>box.appendChild(listCard(e,3)));
+}
+
+// ---- グラフ ----
+let chartDays=30, cTok=0;
+function chartBuckets(all,days,key){
+  const end=new Date();end.setHours(0,0,0,0);
+  const step=days>90?7:1;
+  const map={};all.forEach(e=>{map[e.date]=e});
+  const arr=[];
+  for(let i=days-1;i>=0;i--){const d=new Date(end);d.setDate(end.getDate()-i);const ds=ymd(d);const e=map[ds];arr.push({d:ds,v:e&&e[key]!=null&&!(key==="mood"&&!e.mood)?Number(e[key]):null})}
+  if(step===1)return arr;
+  const out=[];
+  for(let i=0;i<arr.length;i+=step){
+    const seg=arr.slice(i,i+step).map(x=>x.v).filter(v=>v!=null);
+    out.push({d:arr[i].d,v:seg.length?seg.reduce((a,b)=>a+b,0)/seg.length:null});
+  }
+  return out;
+}
+function chartSvg(type,b,o){
+  const W=340,H=160,L=o.moodAxis?34:40,R=8,T=12,B=22,pw=W-L-R,ph=H-T-B;
+  const vs=b.map(x=>x.v).filter(v=>v!=null);
+  if(!vs.length)return '<div class="empty">この期間のデータはありません</div>';
+  let lo,hi;
+  if(o.moodAxis){lo=1;hi=3}
+  else{
+    lo=Math.min(...vs);hi=Math.max(...vs);
+    if(type==="bar")lo=0;else{const pad=(hi-lo)*.2||1;lo-=pad;hi+=pad}
+  }
+  if(hi===lo)hi=lo+1;
+  const n=b.length,Y=v=>T+ph*(1-(v-lo)/(hi-lo));
+  const X=i=>type==="bar"?L+pw*(i+.5)/n:L+(n===1?pw/2:pw*i/(n-1));
+  let g="";
+  const ticks=o.moodAxis?[1,2,3]:[lo,(lo+hi)/2,hi];
+  ticks.forEach(t=>{
+    const y=Y(t);
+    g+=`<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" style="stroke:var(--line)" stroke-width="1"/>`;
+    if(o.moodAxis)g+=`<image href="mood${t}v2.webp" x="4" y="${y-11}" width="22" height="22"/>`;
+    else g+=`<text x="${L-5}" y="${y+4}" text-anchor="end" font-size="10">${o.fmt(t)}</text>`;
+  });
+  const col='style="stroke:var(--acc)"';
+  if(type==="bar"){
+    const bw=Math.max(1.5,pw/n*.7);
+    b.forEach((x,i)=>{if(x.v==null)return;const y=Y(x.v);g+=`<rect x="${X(i)-bw/2}" y="${y}" width="${bw}" height="${Math.max(0,T+ph-y)}" rx="${Math.min(3,bw/2)}" style="fill:var(--acc)" opacity=".85"/>`});
+  }else{
+    let d="",pen=false;
+    b.forEach((x,i)=>{if(x.v==null){pen=false;return}d+=`${pen?"L":"M"}${X(i).toFixed(1)} ${Y(x.v).toFixed(1)} `;pen=true});
+    g+=`<path d="${d}" fill="none" ${col} stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    const r=n<=35?3.2:n<=100?2:2.2;
+    b.forEach((x,i)=>{if(x.v!=null)g+=`<circle cx="${X(i).toFixed(1)}" cy="${Y(x.v).toFixed(1)}" r="${r}" style="fill:var(--card);stroke:var(--acc)" stroke-width="1.6"/>`});
+  }
+  const md=ds=>{const d=new Date(ds+"T00:00:00");return `${d.getMonth()+1}/${d.getDate()}`};
+  g+=`<text x="${L}" y="${H-5}" font-size="10">${md(b[0].d)}</text><text x="${W-R}" y="${H-5}" text-anchor="end" font-size="10">${md(b[n-1].d)}</text>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img">${g}</svg>`;
+}
+async function renderChart(){
+  const tok=++cTok;
+  [30,90,365].forEach(d=>$("cr"+d).classList.toggle("pri",chartDays===d));
+  const all=await allE();
+  if(tok!==cTok||mode!=="chart")return;
+  const unit=chartDays>90?"（週平均）":"";
+  const sum=(arr,f)=>{const v=arr.filter(x=>x.v!=null);return v.length?f(v.map(x=>x.v)):null};
+  const wb=chartBuckets(all,chartDays,"weight"), sb=chartBuckets(all,chartDays,"steps"), mb=chartBuckets(all,chartDays,"mood");
+  const wRaw=chartBuckets(all,chartDays,"weight"); // 最新値用
+  const wv=all.filter(e=>e.weight!=null&&e.date<=ymd(new Date())).sort((a,b)=>a.date.localeCompare(b.date));
+  const startD=new Date();startD.setHours(0,0,0,0);startD.setDate(startD.getDate()-chartDays+1);
+  const wIn=wv.filter(e=>e.date>=ymd(startD));
+  const wSub=wIn.length?`最新 ${wIn[wIn.length-1].weight}kg`+(wIn.length>1?`（期間 ${(wIn[wIn.length-1].weight-wIn[0].weight>0?"+":"")+(wIn[wIn.length-1].weight-wIn[0].weight).toFixed(1)}kg）`:""):"";
+  const stIn=all.filter(e=>e.steps!=null&&e.date>=ymd(startD));
+  const stSub=stIn.length?`平均 ${Math.round(stIn.reduce((a,e)=>a+e.steps,0)/stIn.length).toLocaleString()}歩`:"";
+  const mIn=all.filter(e=>e.mood&&e.date>=ymd(startD));
+  const mc=[0,0,0,0];mIn.forEach(e=>mc[e.mood]++);
+  const mSub=mIn.length?`😞${mc[1]}　😐${mc[2]}　😊${mc[3]}`:"";
+  $("chartBox").innerHTML=
+    `<div class="ct"><span>体重${unit}</span><small>${wSub}</small></div><div class="card cc">${chartSvg("line",wb,{fmt:v=>v.toFixed(1)})}</div>`+
+    `<div class="ct"><span>歩数${unit}</span><small>${stSub}</small></div><div class="card cc">${chartSvg("bar",sb,{fmt:v=>Math.round(v).toLocaleString()})}</div>`+
+    `<div class="ct"><span>気分${unit}</span><small>${mSub}</small></div><div class="card cc">${chartSvg("line",mb,{moodAxis:true})}</div>`;
+}
+
 // ---- render ----
 function photoGrid(box,editable){
   box.innerHTML="";
@@ -570,10 +743,14 @@ function render(){
   $("editScreen").hidden=!edit;
   $("sumScreen").hidden=!sum;
   $("setScreen").hidden=mode!=="set";
+  $("findScreen").hidden=mode!=="find";
+  $("chartScreen").hidden=mode!=="chart";
   $("menuBtn").hidden=edit;
   $("fab").hidden=edit;
   if(sum){renderSum();return}
   if(mode==="set")return;
+  if(mode==="find"){renderFind();return}
+  if(mode==="chart"){renderChart();return}
   const wtxt=cur.wcode==null?"":`${WICON(cur.wcode)} ${cur.wtext}　最高${Math.round(cur.tmax)}° / 最低${Math.round(cur.tmin)}°`;
   if(!edit){
     const empty=isEmpty(cur);
@@ -1038,6 +1215,12 @@ $("fab").onclick=addToday;
 $("edit").addEventListener("click",()=>{backToSum=false});
 $("mSync").onclick=()=>{menu(false);syncDrive()};
 $("mSet").onclick=()=>{menu(false);mode="set";render();scrollTo(0,0)};
+$("mFind").onclick=()=>{menu(false);mode="find";render();scrollTo(0,0)};
+$("mChart").onclick=()=>{menu(false);mode="chart";render();scrollTo(0,0)};
+["fq","ffrom","fto"].forEach(id=>{$(id).oninput=()=>renderFind();$(id).onchange=()=>renderFind()});
+document.querySelectorAll("#fMoods button").forEach(b=>b.onclick=()=>{const m=+b.dataset.m;fMood.has(m)?fMood.delete(m):fMood.add(m);renderFind()});
+$("fclear").onclick=()=>{$("fq").value="";$("ffrom").value="";$("fto").value="";fMood.clear();renderFind()};
+[30,90,365].forEach(d=>$("cr"+d).onclick=()=>{chartDays=d;renderChart()});
 function applyTheme(t,save){
   document.documentElement.dataset.theme=t;
   const m=document.querySelector('meta[name="theme-color"]');
