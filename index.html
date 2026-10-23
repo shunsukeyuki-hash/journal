@@ -109,11 +109,13 @@ input[type=date]{font-size:calc(15px*var(--fs));padding:9px 11px;border-radius:1
 .datebar button{padding:9px 12px;border-radius:12px;font-size:calc(13px*var(--fs))}
 #vDate{font-size:calc(26px*var(--fs));font-weight:700}
 #vEmpty{color:var(--sub);padding:18px 0 6px;text-align:center;font-size:calc(13px*var(--fs))}
-#vWeather{margin-top:6px;color:var(--sub);font-size:calc(13px*var(--fs))}
-#vMood{font-size:calc(38px*var(--fs));margin-top:10px}
-#vVitals{margin-top:8px;font-size:calc(14px*var(--fs));color:var(--sub)}
-#vText{white-space:pre-wrap;line-height:1.9;font-size:calc(15px*var(--fs));margin-top:12px;overflow-wrap:anywhere}
+.vpw{margin-top:6px;color:var(--sub);font-size:calc(13px*var(--fs))}
+.vpm{font-size:calc(38px*var(--fs));margin-top:10px}
+.vpv{margin-top:8px;font-size:calc(14px*var(--fs));color:var(--sub)}
+.vpt{white-space:pre-wrap;line-height:1.9;font-size:calc(15px*var(--fs));margin-top:12px;overflow-wrap:anywhere}
 .vact{margin-top:16px;display:flex;gap:8px}
+.post{border-top:1px solid var(--line);padding:14px 0 6px;margin-top:14px}.post:first-child{border-top:0;margin-top:0}
+.pn{font-size:calc(12px*var(--fs));color:var(--sub);font-weight:700;margin-bottom:2px}
 .vact button{flex:1}
 
 /* 写真 */
@@ -132,7 +134,7 @@ input[type=date]{font-size:calc(15px*var(--fs));padding:9px 11px;border-radius:1
 .moods{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
 .moods button{min-height:128px;padding:6px;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;color:var(--sub)}
 .moods .face{display:block;line-height:0}.mimg{width:1em;height:1em;border-radius:50%;object-fit:cover;vertical-align:middle;display:inline-block}.moods .mimg{width:92px;height:92px}.moods button:not(.on) .mimg{opacity:.75}
-#vMood{font-size:0}#vMood .mimg{width:128px;height:128px}.ec-mood{line-height:0}.ec-mood .mimg{width:60px;height:60px}.cd .m{line-height:0}.cd .m .mimg{width:30px;height:30px}.pill .mimg{width:30px;height:30px;margin:0}
+.vpm{font-size:0}.vpm .mimg{width:128px;height:128px}.ec-mood{line-height:0}.ec-mood .mimg{width:60px;height:60px}.cd .m{line-height:0}.cd .m .mimg{width:30px;height:30px}.pill .mimg{width:30px;height:30px;margin:0}
 .moods small{font-size:calc(10px*var(--fs))}
 .moods button.on{border-color:var(--acc);background:var(--soft);color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc)}
 .nums{display:grid;grid-template-columns:1fr 1fr;gap:9px}
@@ -255,17 +257,9 @@ input[type=checkbox]#autoHealth{appearance:none;-webkit-appearance:none;width:44
     </div>
     <div id="vDate"></div>
     <div id="vEmpty">この日の日記はまだありません</div>
-    <div id="vBody">
-      <div id="vWeather"></div>
-      <div id="vMood"></div>
-      <div id="vVitals"></div>
-      <div id="vText"></div>
-      <div id="vPhotos" class="photos"></div>
-      <div id="vAudios"></div>
-    </div>
+    <div id="vPosts"></div>
     <div class="vact">
-      <button class="pri" id="edit">✏️ 編集</button>
-      <button class="danger" id="del">🗑 削除</button>
+      <button class="pri" id="edit">✏️ 日記を書く</button>
     </div>
   </div>
 
@@ -517,13 +511,24 @@ const MI=m=>m?`<img class="mimg" src="mood${m}v2.webp" alt="${MOODS[m]}">`:"";
 // ---- IndexedDB ----
 let db;
 const open=()=>new Promise((res,rej)=>{
-  const r=indexedDB.open("journal",1);
-  r.onupgradeneeded=()=>{r.result.createObjectStore("entries",{keyPath:"date"})};
+  const r=indexedDB.open("journal",2);
+  r.onupgradeneeded=ev=>{
+    const d=r.result;
+    if(!d.objectStoreNames.contains("entries"))d.createObjectStore("entries",{keyPath:"date"});
+    if(!d.objectStoreNames.contains("posts")){          // 1日に複数の記事を持てる新しい保存場所
+      const ps=d.createObjectStore("posts",{keyPath:"id"});
+      if(ev.oldVersion>=1){                              // 既存の日記を引き継ぐ（id＝日付）
+        r.transaction.objectStore("entries").openCursor().onsuccess=e2=>{
+          const c=e2.target.result;if(c){ps.put({...c.value,id:c.value.date});c.continue()}
+        };
+      }
+    }
+  };
   r.onsuccess=()=>{db=r.result;res()};
   r.onerror=()=>rej(r.error);
 });
 const tx=(mode,fn)=>new Promise((res,rej)=>{
-  const t=db.transaction("entries",mode);const s=t.objectStore("entries");
+  const t=db.transaction("posts",mode);const s=t.objectStore("posts");
   const r=fn(s);t.oncomplete=()=>res(r&&r.result);t.onerror=()=>rej(t.error);
 });
 const getE=d=>tx("readonly",s=>s.get(d));
@@ -532,7 +537,7 @@ const tombs=()=>JSON.parse(localStorage.getItem("tombs")||"{}");
 const setTombs=t=>localStorage.setItem("tombs",JSON.stringify(t));
 const putE=async e=>{
   await tx("readwrite",s=>s.put(e));
-  const t=tombs();if(t[e.date]){delete t[e.date];setTombs(t)}
+  const t=tombs();if(t[e.id]){delete t[e.id];setTombs(t)}
 };
 const delE=async d=>{
   const old=await getE(d);
@@ -543,7 +548,9 @@ const delE=async d=>{
 const allE=()=>tx("readonly",s=>s.getAll());
 
 // ---- state ----
-const blank=date=>({date,mood:0,text:"",photos:[],audios:[],wcode:null,wtext:"",tmax:null,tmin:null,steps:null,weight:null,updated:""});
+const newId=date=>`${date}~${Date.now().toString(36)}${Math.random().toString(36).slice(2,5)}`;
+const byId=(a,b)=>a.id.localeCompare(b.id);
+const blank=date=>({id:newId(date),date,mood:0,text:"",photos:[],audios:[],wcode:null,wtext:"",tmax:null,tmin:null,steps:null,weight:null,updated:""});
 let cur=blank(""), mode="view", tm, urls=[], lbUrl=null;
 let entryMap={}, calYM=new Date(Date.now()+9*3600e3).toISOString().slice(0,7);
 const ymd=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10)};
@@ -614,7 +621,8 @@ async function renderSum(){
   $("uweek").classList.toggle("pri",sumUnit==="week");
   $("umonth").classList.toggle("pri",sumUnit==="month");
   const every=await allE();
-  const all=every.filter(x=>x.date>=s&&x.date<=e).sort((a,b)=>a.date.localeCompare(b.date));
+  const all=every.filter(x=>x.date>=s&&x.date<=e).sort((a,b)=>a.date.localeCompare(b.date)||a.id.localeCompare(b.id));
+  const dayAgg=aggDays(all);
   if(tok!==sumTok||mode!=="sum")return;
   // 過去の今日（同じ月日の過去の日記）
   {
@@ -628,13 +636,13 @@ async function renderSum(){
   }
   // 集計
   const mc=[0,0,0,0];all.forEach(x=>mc[x.mood||0]++);
-  const stp=all.filter(x=>x.steps!=null).map(x=>x.steps);
-  const wts=all.filter(x=>x.weight!=null).map(x=>x.weight);
+  const stp=dayAgg.filter(x=>x.steps!=null).map(x=>x.steps);
+  const wts=dayAgg.filter(x=>x.weight!=null).map(x=>x.weight);
   const unitJa=sumUnit==="week"?"週":"月";
   const avg=stp.length?Math.round(stp.reduce((a,b)=>a+b,0)/stp.length).toLocaleString():"—";
   const wch=wts.length>1?((wts[wts.length-1]-wts[0]>0?"+":"")+(wts[wts.length-1]-wts[0]).toFixed(1)):"—";
   $("sStat").innerHTML=`<div class="stats">
-    <article class="stat card"><div class="stat-l">記録した日 <i>▤</i></div><div class="stat-v">${all.length}<small>日</small></div><p class="stat-n">この${unitJa}のページ</p></article>
+    <article class="stat card"><div class="stat-l">記録した日 <i>▤</i></div><div class="stat-v">${dayAgg.length}<small>日</small></div><p class="stat-n">この${unitJa}のページ</p></article>
     <article class="stat card"><div class="stat-l">平均歩数 <i>↗</i></div><div class="stat-v">${avg}<small>歩</small></div><p class="stat-n">入力のある日で計算</p></article>
     <article class="stat card"><div class="stat-l">気分の記録 <i>☼</i></div><div class="pills"><span class="pill">${MI(1)}<b>${mc[1]}</b></span><span class="pill">${MI(2)}<b>${mc[2]}</b></span><span class="pill">${MI(3)}<b>${mc[3]}</b></span></div></article>
     <article class="stat card"><div class="stat-l">体重の変化 <i>⌁</i></div><div class="stat-v">${wch}<small>kg</small></div><p class="stat-n">${wts.length>1?`${wts[0]}→${wts[wts.length-1]}kg`:"記録が2件以上で表示"}</p></article>
@@ -685,15 +693,13 @@ async function renderSum(){
     const eb=document.createElement("button");eb.textContent="✏️ 編集";
     eb.onclick=async()=>{
       sumScroll=scrollY;
-      await load(x.date);
-      $("edit").click();
-      if(mode==="edit")backToSum=true;   // 完了したら一覧に戻る
+      await startEdit(x,true);   // 完了したら一覧に戻る
     };
     const dbtn=document.createElement("button");dbtn.textContent="🗑 削除";dbtn.className="danger";
     dbtn.onclick=async()=>{
-      if(!confirm(`${x.date} の日記を削除しますか？\n（写真も一緒に消え、元に戻せません）`))return;
-      await delE(x.date);
-      if(cur.date===x.date)cur=blank(x.date);
+      if(!confirm(`${x.date} の記事を削除しますか？\n（写真も一緒に消え、元に戻せません）`))return;
+      await delE(x.id);
+      if(cur.id===x.id)cur=blank(x.date);
       refreshList();
       pendingScroll=scrollY;
       render();
@@ -723,6 +729,18 @@ function listCard(e,lines,yearsAgo){
   return d;
 }
 
+// 日ごとにまとめる（歩数・体重は最初の値、気分は最後の記入）：集計・グラフ用
+function aggDays(all){
+  const m={};
+  [...all].sort(byId).forEach(e=>{
+    const d=m[e.date]||(m[e.date]={date:e.date,steps:null,weight:null,mood:0});
+    if(d.steps==null&&e.steps!=null)d.steps=e.steps;
+    if(d.weight==null&&e.weight!=null)d.weight=e.weight;
+    if(e.mood)d.mood=e.mood;
+  });
+  return Object.values(m).sort((a,b)=>a.date.localeCompare(b.date));
+}
+
 // ---- 検索 ----
 let fTok=0;const fMood=new Set();
 async function renderFind(){
@@ -738,7 +756,7 @@ async function renderFind(){
     if(fMood.size&&!fMood.has(e.mood))return false;
     if(q&&!(e.text||"").toLowerCase().includes(q))return false;
     return true;
-  }).sort((x,y)=>y.date.localeCompare(x.date));
+  }).sort((x,y)=>y.date.localeCompare(x.date)||y.id.localeCompare(x.id));
   if(tok!==fTok||mode!=="find")return;
   $("fcount").textContent=`${a.length}件見つかりました`+(a.length>100?"（新しい100件を表示）":"");
   box.innerHTML="";
@@ -751,7 +769,7 @@ let chartDays=30, cTok=0;
 function chartBuckets(all,days,key){
   const end=new Date();end.setHours(0,0,0,0);
   const step=days>90?7:1;
-  const map={};all.forEach(e=>{map[e.date]=e});
+  const map={};aggDays(all).forEach(e=>{map[e.date]=e});
   const arr=[];
   for(let i=days-1;i>=0;i--){const d=new Date(end);d.setDate(end.getDate()-i);const ds=ymd(d);const e=map[ds];arr.push({d:ds,v:e&&e[key]!=null&&!(key==="mood"&&!e.mood)?Number(e[key]):null})}
   if(step===1)return arr;
@@ -807,13 +825,14 @@ async function renderChart(){
   const sum=(arr,f)=>{const v=arr.filter(x=>x.v!=null);return v.length?f(v.map(x=>x.v)):null};
   const wb=chartBuckets(all,chartDays,"weight"), sb=chartBuckets(all,chartDays,"steps"), mb=chartBuckets(all,chartDays,"mood");
   const wRaw=chartBuckets(all,chartDays,"weight"); // 最新値用
-  const wv=all.filter(e=>e.weight!=null&&e.date<=ymd(new Date())).sort((a,b)=>a.date.localeCompare(b.date));
+  const dAll=aggDays(all);
+  const wv=dAll.filter(e=>e.weight!=null&&e.date<=ymd(new Date())).sort((a,b)=>a.date.localeCompare(b.date));
   const startD=new Date();startD.setHours(0,0,0,0);startD.setDate(startD.getDate()-chartDays+1);
   const wIn=wv.filter(e=>e.date>=ymd(startD));
   const wSub=wIn.length?`最新 ${wIn[wIn.length-1].weight}kg`+(wIn.length>1?`（期間 ${(wIn[wIn.length-1].weight-wIn[0].weight>0?"+":"")+(wIn[wIn.length-1].weight-wIn[0].weight).toFixed(1)}kg）`:""):"";
-  const stIn=all.filter(e=>e.steps!=null&&e.date>=ymd(startD));
+  const stIn=dAll.filter(e=>e.steps!=null&&e.date>=ymd(startD));
   const stSub=stIn.length?`平均 ${Math.round(stIn.reduce((a,e)=>a+e.steps,0)/stIn.length).toLocaleString()}歩`:"";
-  const mIn=all.filter(e=>e.mood&&e.date>=ymd(startD));
+  const mIn=dAll.filter(e=>e.mood&&e.date>=ymd(startD));
   const mc=[0,0,0,0];mIn.forEach(e=>mc[e.mood]++);
   const mSub=mIn.length?`😞${mc[1]}　😐${mc[2]}　😊${mc[3]}`:"";
   $("chartBox").innerHTML=
@@ -825,15 +844,15 @@ async function renderChart(){
 // ---- 音声（表の日記：暗号化なし） ----
 const AEXT=t=>/mp4/.test(t||"")?"m4a":/ogg/.test(t||"")?"ogg":"webm";
 const AMIME={webm:"audio/webm",m4a:"audio/mp4",ogg:"audio/ogg"};
-const audioNames=e=>(e.audios||[]).map((b,i)=>`audio_${e.date}_${i+1}.${AEXT(b.type)}`);
+const audioNames=e=>(e.audios||[]).map((b,i)=>`audio_${e.id}_${i+1}.${AEXT(b.type)}`);
 function fixDur(au){ // 録音ファイルの長さが無限大と出る場合の対策
   au.addEventListener("loadedmetadata",()=>{
     if(au.duration===Infinity){au.currentTime=1e101;au.addEventListener("timeupdate",function f(){au.removeEventListener("timeupdate",f);au.currentTime=0})}
   });
 }
-function audioList(box,editable){
+function audioList(box,editable,a=cur){
   box.innerHTML="";
-  (cur.audios||[]).forEach((b,i)=>{
+  (a.audios||[]).forEach((b,i)=>{
     const row=document.createElement("div");row.className="aud";
     const au=document.createElement("audio");au.controls=true;au.preload="metadata";
     const u=URL.createObjectURL(b);urls.push(u);au.src=u;fixDur(au);
@@ -876,9 +895,9 @@ async function aRecStop(){
 $("arec").onclick=()=>{arec?aRecStop():aRecStart()};
 
 // ---- render ----
-function photoGrid(box,editable){
+function photoGrid(box,editable,a=cur){
   box.innerHTML="";
-  cur.photos.forEach((b,i)=>{
+  a.photos.forEach((b,i)=>{
     const d=document.createElement("div");d.className="ph";
     const u=URL.createObjectURL(b);urls.push(u);
     const im=document.createElement("img");im.src=u;im.onclick=()=>openLb(b);
@@ -908,22 +927,12 @@ function render(){
   if(mode==="chart"){renderChart();return}
   const wtxt=cur.wcode==null?"":`${WICON(cur.wcode)} ${cur.wtext}　最高${Math.round(cur.tmax)}° / 最低${Math.round(cur.tmin)}°`;
   if(!edit){
-    const empty=isEmpty(cur);
     $("date").value=cur.date;
     $("vDate").textContent=fmt(cur.date);
-    $("vEmpty").hidden=!empty;
-    $("vBody").hidden=empty;
-    $("del").hidden=empty;
-    $("edit").textContent=empty?"✏️ 日記を書く":"✏️ 編集";
-    $("vWeather").textContent=wtxt;
-    $("vMood").innerHTML=MI(cur.mood);
-    $("vMood").hidden=!cur.mood;
-    const vit=[cur.steps!=null?`👣 ${Number(cur.steps).toLocaleString()}歩`:"",cur.weight!=null?`⚖️ ${cur.weight}kg`:""].filter(Boolean).join("　");
-    $("vVitals").textContent=vit;$("vVitals").hidden=!vit;
-    $("vText").textContent=cur.text||"";
-    $("vText").hidden=!(cur.text||"").trim();
-    photoGrid($("vPhotos"),false);
-    audioList($("vAudios"),false);
+    $("vEmpty").hidden=dayList.length>0;
+    $("edit").textContent=dayList.length?"＋ この日に記事を追加":"✏️ 日記を書く";
+    const box=$("vPosts");box.innerHTML="";
+    dayList.forEach((a,k)=>box.appendChild(postCard(a,k,dayList.length)));
     renderCal();
   }else{
     $("eDate").value=cur.date;$("eDate").max=ymd(new Date());
@@ -935,17 +944,57 @@ function render(){
   }
 }
 
+// ---- 日別表示：記事カード ----
+let dayList=[];
+function postCard(a,k,n){
+  const c=document.createElement("div");c.className="post";
+  const mk=(cls,txt)=>{const d=document.createElement("div");d.className=cls;d.textContent=txt;return d};
+  if(n>1)c.appendChild(mk("pn",`記事 ${k+1} / ${n}`));
+  if(a.wcode!=null)c.appendChild(mk("vpw",`${WICON(a.wcode)} ${a.wtext}　最高${Math.round(a.tmax)}° / 最低${Math.round(a.tmin)}°`));
+  if(a.mood){const m=document.createElement("div");m.className="vpm";m.innerHTML=MI(a.mood);c.appendChild(m)}
+  const vit=[a.steps!=null?`👣 ${Number(a.steps).toLocaleString()}歩`:"",a.weight!=null?`⚖️ ${a.weight}kg`:""].filter(Boolean).join("　");
+  if(vit)c.appendChild(mk("vpv",vit));
+  if((a.text||"").trim())c.appendChild(mk("vpt",a.text));
+  if(a.photos.length){const g=document.createElement("div");g.className="photos";photoGrid(g,false,a);c.appendChild(g)}
+  if(a.audios.length){const g=document.createElement("div");audioList(g,false,a);c.appendChild(g)}
+  const row=document.createElement("div");row.className="vact";
+  const eb=document.createElement("button");eb.className="pri";eb.textContent="✏️ 編集";eb.onclick=()=>startEdit(a);
+  const db_=document.createElement("button");db_.className="danger";db_.textContent="🗑 削除";
+  db_.onclick=async()=>{
+    if(!confirm(`${a.date} の記事を削除しますか？\n（写真も一緒に消え、元に戻せません）`))return;
+    await delE(a.id);await load(a.date);refreshList();toast("削除しました");autoSync(true);
+  };
+  row.append(eb,db_);c.appendChild(row);
+  return c;
+}
+const normP=e=>{const a={...e};if(!a.photos)a.photos=a.photo?[a.photo]:[];delete a.photo;if(!a.audios)a.audios=[];return a};
+let healthOK=true;
+async function startEdit(a,fromSum){
+  if(syncing)return toast("同期中です。少しお待ちください");
+  const date=a?a.date:cur.date;
+  const sibs=(await allE()).filter(x=>x.date===date&&(!a||x.id!==a.id));
+  if(a)cur=normP(a);
+  else{
+    cur=blank(date);
+    const w=sibs.find(x=>x.wcode!=null);
+    if(w){cur.wcode=w.wcode;cur.wtext=w.wtext;cur.tmax=w.tmax;cur.tmin=w.tmin}
+  }
+  healthOK=sibs.every(x=>x.steps==null&&x.weight==null);
+  backToSum=!!fromSum;calYM=date.slice(0,7);
+  mode="edit";
+  $("text").value=cur.text||"";$("steps").value=cur.steps==null?"":cur.steps;$("weight").value=cur.weight==null?"":cur.weight;$("hstat").textContent="";
+  render();scrollTo(0,0);
+  if(cur.wcode==null)fetchWeather(true);
+  if(autoHealthOn()&&localStorage.getItem("hconn")==="1"&&healthOK&&(cur.steps==null||cur.weight==null))fetchHealth(true);
+}
+
 // ---- load / save ----
 async function load(date){
-  const e=await getE(date);
-  cur=e?{...e}:blank(date);
-  if(!cur.photos)cur.photos=cur.photo?[cur.photo]:[]; // 旧データ(1枚)を引き継ぐ
-  delete cur.photo;
-  if(!cur.audios)cur.audios=[];
+  cur=blank(date);
+  dayList=(await allE()).filter(x=>x.date===date).sort(byId).map(normP);
   mode="view";
   calYM=date.slice(0,7);
   render();
-  if(cur.wcode==null)fetchWeather(true);
 }
 async function save(silent){
   if(mode==="edit"){
@@ -954,7 +1003,7 @@ async function save(silent){
     cur.weight=$("weight").value===""?null:+$("weight").value;
   }
   cur.updated=new Date().toISOString();
-  if(isEmpty(cur))await delE(cur.date); // 中身が空の日は保存しない
+  if(isEmpty(cur))await delE(cur.id); // 中身が空の記事は保存しない
   else await putE(cur);
   if(!silent)toast("保存しました");
   refreshList();
@@ -1005,7 +1054,7 @@ function resize(file,max=1280){
 
 // ---- list ----
 async function refreshList(){
-  const a=(await allE()).sort((x,y)=>y.date.localeCompare(x.date));
+  const a=(await allE()).sort((x,y)=>y.date.localeCompare(x.date)||y.id.localeCompare(x.id));
   entryMap=Object.fromEntries(a.map(e=>[e.date,e]));
   renderCal();
   $("list").innerHTML="";
@@ -1026,7 +1075,7 @@ async function refreshList(){
 }
 
 // ---- CSV ----
-const COLS=["date","mood","weather_code","weather_text","temp_max","temp_min","text","photo_file","updated_at","steps","weight_kg","audio_file"];
+const COLS=["date","mood","weather_code","weather_text","temp_max","temp_min","text","photo_file","updated_at","steps","weight_kg","audio_file","post_id"];
 const q=v=>{v=v==null?"":String(v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
 function parseCSV(s){
   const rows=[];let r=[],f="",inq=false;
@@ -1042,9 +1091,9 @@ function parseCSV(s){
   return rows;
 }
 async function exportCSV(){
-  const a=(await allE()).sort((x,y)=>x.date.localeCompare(y.date));
+  const a=(await allE()).sort((x,y)=>x.date.localeCompare(y.date)||x.id.localeCompare(y.id));
   const lines=[COLS.join(",")];
-  a.forEach(e=>lines.push([e.date,e.mood,e.wcode,e.wtext,e.tmax,e.tmin,e.text,(e.photos||(e.photo?[e.photo]:[])).map((_,i)=>`photo_${e.date}_${i+1}.jpg`).join(";"),e.updated,e.steps,e.weight,audioNames(e).join(";")].map(q).join(",")));
+  a.forEach(e=>lines.push([e.date,e.mood,e.wcode,e.wtext,e.tmax,e.tmin,e.text,(e.photos||(e.photo?[e.photo]:[])).map((_,i)=>`photo_${e.id}_${i+1}.jpg`).join(";"),e.updated,e.steps,e.weight,audioNames(e).join(";"),e.id].map(q).join(",")));
   const blob=new Blob(["﻿"+lines.join("\n")],{type:"text/csv"});
   const u=document.createElement("a");u.href=URL.createObjectURL(blob);u.download="journal.csv";u.click();
   toast("CSVを書き出しました");
@@ -1056,9 +1105,10 @@ async function importCSV(file){
     if(!r[0])continue;
     const o=Object.fromEntries(h.map((k,i)=>[k,r[i]]));
     if(o.deleted==="1")continue;
-    const old=await getE(o.date);
+    const pid=o.post_id||o.date;
+    const old=await getE(pid);
     if(old&&old.updated&&o.updated_at&&old.updated>=o.updated_at)continue; // 新しい方を優先
-    await putE({date:o.date,mood:+o.mood||0,text:o.text||"",photos:old?(old.photos||(old.photo?[old.photo]:[])):[],audios:old&&old.audios?old.audios:[],
+    await putE({id:pid,date:o.date,mood:+o.mood||0,text:o.text||"",photos:old?(old.photos||(old.photo?[old.photo]:[])):[],audios:old&&old.audios?old.audios:[],
       wcode:o.weather_code===""?null:+o.weather_code,wtext:o.weather_text||"",
       tmax:o.temp_max===""?null:+o.temp_max,tmin:o.temp_min===""?null:+o.temp_min,steps:o.steps?+o.steps:null,weight:o.weight_kg?+o.weight_kg:null,updated:o.updated_at||""});
     n++;
@@ -1073,16 +1123,16 @@ const D="https://www.googleapis.com/drive/v3", U="https://www.googleapis.com/upl
 const gs={token:null,exp:0};
 let syncing=false, gsiP=null;
 const COLS_D=[...COLS,"deleted"];
-const photoNames=e=>(e.photos||[]).map((_,i)=>`photo_${e.date}_${i+1}.jpg`);
-const rowToEntry=o=>({date:o.date,mood:+o.mood||0,text:o.text||"",photos:[],
+const photoNames=e=>(e.photos||[]).map((_,i)=>`photo_${e.id}_${i+1}.jpg`);
+const rowToEntry=o=>({id:o.post_id||o.date,date:o.date,mood:+o.mood||0,text:o.text||"",photos:[],
   wcode:o.weather_code?+o.weather_code:null,wtext:o.weather_text||"",
   tmax:o.temp_max?+o.temp_max:null,tmin:o.temp_min?+o.temp_min:null,
   steps:o.steps?+o.steps:null,weight:o.weight_kg?+o.weight_kg:null,updated:o.updated_at||"",audios:[]});
 function buildCSV(entries,tm){
   const lines=[COLS_D.join(",")];
-  Object.values(entries).sort((x,y)=>x.date.localeCompare(y.date)).forEach(e=>
-    lines.push([e.date,e.mood,e.wcode,e.wtext,e.tmax,e.tmin,e.text,photoNames(e).join(";"),e.updated,e.steps,e.weight,audioNames(e).join(";"),""].map(q).join(",")));
-  Object.keys(tm).sort().forEach(d=>lines.push([d,"","","","","","","",tm[d],"","","","1"].map(q).join(",")));
+  Object.values(entries).sort((x,y)=>x.date.localeCompare(y.date)||x.id.localeCompare(y.id)).forEach(e=>
+    lines.push([e.date,e.mood,e.wcode,e.wtext,e.tmax,e.tmin,e.text,photoNames(e).join(";"),e.updated,e.steps,e.weight,audioNames(e).join(";"),e.id,""].map(q).join(",")));
+  Object.keys(tm).sort().forEach(d=>lines.push([d.slice(0,10),"","","","","","","",tm[d],"","","",d,"1"].map(q).join(",")));
   return lines.join("\n");
 }
 function loadGsi(){
@@ -1171,7 +1221,7 @@ async function uploadPhotos(fid,e,files){
   for(let i=0;i<names.length;i++){
     files[names[i]]=await uploadFile(fid,names[i],e.photos[i],"image/jpeg",files[names[i]]);
   }
-  const pre=`photo_${e.date}_`;
+  const pre=`photo_${e.id}_`;
   for(const n of Object.keys(files)){ // 枚数が減った分をドライブから消す
     if(n.startsWith(pre)&&!names.includes(n)){
       await gapi(`${D}/files/${files[n]}`,{method:"DELETE"});
@@ -1182,7 +1232,7 @@ async function uploadPhotos(fid,e,files){
   for(let i=0;i<an.length;i++){
     files[an[i]]=await uploadFile(fid,an[i],e.audios[i],AMIME[an[i].split(".").pop()]||"audio/webm",files[an[i]]);
   }
-  const apre=`audio_${e.date}_`;
+  const apre=`audio_${e.id}_`;
   for(const n of Object.keys(files)){ // 減った音声もドライブから消す
     if(n.startsWith(apre)&&!an.includes(n)){
       await gapi(`${D}/files/${files[n]}`,{method:"DELETE"});
@@ -1211,12 +1261,13 @@ async function syncDrive(silent){
       rows.forEach(r=>{
         if(!r[0])return;
         const o=Object.fromEntries(h.map((k,i)=>[k,r[i]]));
-        if(o.deleted==="1")rtomb[o.date]=o.updated_at||"";
-        else remote[o.date]={e:rowToEntry(o),n:(o.photo_file||"").split(";").filter(Boolean).length,an:(o.audio_file||"").split(";").filter(Boolean)};
+        const rid=o.post_id||o.date;
+        if(o.deleted==="1")rtomb[rid]=o.updated_at||"";
+        else remote[rid]={e:rowToEntry(o),n:(o.photo_file||"").split(";").filter(Boolean).length,an:(o.audio_file||"").split(";").filter(Boolean)};
       });
     }
     const local={};
-    (await allE()).forEach(e=>{if(!e.photos)e.photos=e.photo?[e.photo]:[];if(!e.audios)e.audios=[];delete e.photo;local[e.date]=e});
+    (await allE()).forEach(e=>{if(!e.photos)e.photos=e.photo?[e.photo]:[];if(!e.audios)e.audios=[];delete e.photo;local[e.id]=e});
     const lt=tombs();
     const finalE={},finalT={};
     let up=0,down=0,dirty=false;
@@ -1234,7 +1285,7 @@ async function syncDrive(silent){
           }
         }else{
           finalT[d]=L.t;
-          if(!R||R.e||L.t>R.t){await uploadPhotos(fid,{date:d,photos:[]},files);dirty=true}
+          if(!R||R.e||L.t>R.t){await uploadPhotos(fid,{id:d,photos:[]},files);dirty=true}
         }
       }else if(R.e){                    // ドライブ側が新しい
         say(`同期中…ダウンロード ${i+1}/${dates.length}`);
@@ -1366,9 +1417,6 @@ $("hbtn").onclick=()=>fetchHealth();
 const autoHealthOn=()=>localStorage.getItem("autoHealth")!=="0";
 $("autoHealth").checked=autoHealthOn();
 $("autoHealth").onchange=e=>{try{localStorage.setItem("autoHealth",e.target.checked?"1":"0")}catch(_){}};
-$("edit").addEventListener("click",()=>setTimeout(()=>{
-  if(mode==="edit"&&autoHealthOn()&&localStorage.getItem("hconn")==="1"&&(cur.steps==null||cur.weight==null))fetchHealth(true);
-},0));
 ["steps","weight"].forEach(id=>{$(id).oninput=()=>{clearTimeout(tm);tm=setTimeout(()=>save(true),1500)}});
 
 // ---- events: 表示画面 ----
@@ -1382,10 +1430,9 @@ $("brand").onclick=async()=>{menu(false);if(mode==="edit"){clearTimeout(tm);cur.
 $("brand").onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();$("brand").click()}};
 $("mHome").onclick=()=>{menu(false);goHome()};
 $("mCal").onclick=async()=>{menu(false);await load(cur.date||ymd(new Date()));scrollTo(0,0)};
-const addToday=async()=>{menu(false);await load(ymd(new Date()));$("edit").click()};
+const addToday=async()=>{menu(false);await load(ymd(new Date()));await startEdit(null)};
 $("mAdd").onclick=addToday;
 $("fab").onclick=addToday;
-$("edit").addEventListener("click",()=>{backToSum=false});
 $("mSync").onclick=()=>{menu(false);syncDrive()};
 $("mSet").onclick=()=>{menu(false);mode="set";render();scrollTo(0,0)};
 $("mFind").onclick=()=>{menu(false);mode="find";render();scrollTo(0,0)};
@@ -1421,15 +1468,7 @@ $("prev").onclick=()=>load(shift(-1));
 $("next").onclick=()=>load(shift(1));
 $("today").onclick=()=>load(ymd(new Date()));
 $("yest").onclick=()=>load(ymd(new Date(Date.now()-864e5)));
-$("edit").onclick=()=>{if(syncing)return toast("同期中です。少しお待ちください");mode="edit";$("text").value=cur.text||"";$("steps").value=cur.steps==null?"":cur.steps;$("weight").value=cur.weight==null?"":cur.weight;$("hstat").textContent="";render();scrollTo(0,0)};
-$("del").onclick=async()=>{
-  if(!confirm(`${cur.date} の日記を削除しますか？\n（写真も一緒に消え、元に戻せません）`))return;
-  await delE(cur.date);
-  cur=blank(cur.date);
-  render();refreshList();toast("削除しました");
-  fetchWeather(true);
-  autoSync(true);
-};
+$("edit").onclick=()=>startEdit(null);
 $("exp").onclick=exportCSV;
 $("imp").onclick=()=>$("cfile").click();
 $("cfile").onchange=e=>{if(e.target.files[0])importCSV(e.target.files[0]);e.target.value=""};
@@ -1446,22 +1485,12 @@ $("eDate").onchange=async e=>{
   cur.text=$("text").value;
   cur.steps=$("steps").value===""?null:Math.round(+$("steps").value);
   cur.weight=$("weight").value===""?null:+$("weight").value;
-  const target=await getE(nd);
-  if(isEmpty(cur)){                       // まだ何も書いていない → その日の日記へ切り替え
-    await save(true);
-    await load(nd);
-    $("edit").click();
-  }else if(!target){                      // 書きかけ → 日付を付け替える（移動）
-    await delE(od);
-    cur.date=nd;cur.wcode=null;cur.wtext="";cur.tmax=null;cur.tmin=null;
-    await save(true);
-    render();
-    fetchWeather(true);
-    toast("日付を変更しました");
-  }else{                                  // 移動先にすでに日記がある
-    e.target.value=od;
-    toast("その日にはすでに日記があります");
-  }
+  cur.date=nd;cur.wcode=null;cur.wtext="";cur.tmax=null;cur.tmin=null;   // この記事の日付だけを付け替える
+  await save(true);
+  calYM=nd.slice(0,7);
+  render();
+  fetchWeather(true);
+  toast("日付を変更しました");
 };
 $("text").oninput=()=>{clearTimeout(tm);tm=setTimeout(()=>save(true),1500)};
 $("pbtn").onclick=()=>{if(cur.photos.length>=3)return toast("写真は1日3枚までです");$("pfile").click()};
@@ -1479,10 +1508,8 @@ $("done").onclick=async()=>{
   clearTimeout(tm);
   await save(true);
   const back=backToSum;backToSum=false;
-  mode=back?"sum":"view";
-  if(back)pendingScroll=sumScroll;
-  render();
-  if(!back)scrollTo(0,0);
+  if(back){mode="sum";pendingScroll=sumScroll;render()}
+  else{await load(cur.date);scrollTo(0,0)}
   toast("保存しました");
   autoSync(true);
 };
