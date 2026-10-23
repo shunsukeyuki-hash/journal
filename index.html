@@ -182,7 +182,9 @@ input[type=checkbox]#autoHealth{appearance:none;-webkit-appearance:none;width:44
 
 
 /* ひみつの日記 */
-#vault{position:fixed;inset:0;z-index:60;background:var(--bg);overflow-y:auto}
+#vault{position:fixed;inset:0;z-index:60;background:var(--bg);overflow-y:auto;--bg:#0e100f;--card:#171b19;--ink:#d9dcd9;--sub:#8e9891;--acc:#7fb892;--soft:#222c26;--line:#2b322e;--onacc:#10201a;--shadow:none;color:var(--ink);color-scheme:dark}
+#vault .card{box-shadow:none}
+#vault .ec-date{color:var(--acc)}
 .vwrap{max-width:640px;margin:0 auto;padding:0 18px calc(60px + env(safe-area-inset-bottom))}
 .vtop{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:max(10px,env(safe-area-inset-top)) 0 10px;background:var(--bg);border-bottom:1px solid var(--line);margin-bottom:18px}
 .vtop b{font-size:calc(15px*var(--fs))}
@@ -195,7 +197,12 @@ input[type=checkbox]#autoHealth{appearance:none;-webkit-appearance:none;width:44
 .aud{display:flex;align-items:center;gap:8px;margin-top:10px}
 .aud audio{flex:1;min-width:0;height:40px}
 .aud button{padding:6px 11px}
-#vRec.rec{background:#a15446;color:#fff;border-color:#a15446;font-weight:700}
+#vRec.rec,#arec.rec{background:#a15446;color:#fff;border-color:#a15446;font-weight:700}
+#vBlack{position:fixed;inset:0;z-index:100;background:#000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;-webkit-tap-highlight-color:transparent;user-select:none}
+#vBlack .ctl{opacity:0;transition:opacity .25s;text-align:center}
+#vBlack.show .ctl{opacity:1}
+#vBlack button{background:#0b0b0b;color:#5c5c5c;border:1px solid #1c1c1c;padding:16px 30px;font-size:16px;border-radius:14px}
+#vBlackT{display:block;color:#3c3c3c;font-size:14px;margin-bottom:14px}
 /* 検索・グラフ・過去の今日 */
 .mfs{display:flex;gap:10px}
 .mfs button{padding:5px;border-radius:50%;line-height:0;border:2px solid transparent;background:transparent;opacity:.55}
@@ -254,6 +261,7 @@ input[type=checkbox]#autoHealth{appearance:none;-webkit-appearance:none;width:44
       <div id="vVitals"></div>
       <div id="vText"></div>
       <div id="vPhotos" class="photos"></div>
+      <div id="vAudios"></div>
     </div>
     <div class="vact">
       <button class="pri" id="edit">✏️ 編集</button>
@@ -403,6 +411,15 @@ input[type=checkbox]#autoHealth{appearance:none;-webkit-appearance:none;width:44
     </div>
   </div>
 
+  <div class="fg">
+    <div class="fl">音声 <small>最大5件・各15分まで</small></div>
+    <div class="card" style="margin:0;padding:13px">
+      <button id="arec">● 録音する</button>
+      <div id="aedit"></div>
+      <div class="note">録音は暗号化されず、日記と一緒にこのアプリ内に保存されます（スマホの録音アプリには保存されません）。録音中は画面を閉じないでください。</div>
+    </div>
+  </div>
+
   <div class="fg" style="margin-top:22px">
     <button class="pri" id="done">✓ 完了</button>
     <div class="note" style="text-align:center">入力内容は自動で保存されます。</div>
@@ -457,25 +474,21 @@ input[type=checkbox]#autoHealth{appearance:none;-webkit-appearance:none;width:44
   <div id="vEdit" hidden>
     <div class="fl">日付</div>
     <div class="card" style="padding:12px 14px"><input type="date" id="vDateIn" style="width:100%;border:0;background:transparent;padding:0"></div>
-    <div class="fl" style="margin-top:6px">今日の気分</div>
-    <div class="moods" id="vMoods">
-      <button data-m="1"><span class="face"><img class="mimg" src="mood1v2.webp" alt="悪い"></span><small>悪い</small></button>
-      <button data-m="2"><span class="face"><img class="mimg" src="mood2v2.webp" alt="ふつう"></span><small>ふつう</small></button>
-      <button data-m="3"><span class="face"><img class="mimg" src="mood3v2.webp" alt="良い"></span><small>良い</small></button>
-    </div>
     <div class="fl" style="margin-top:18px">内容</div>
     <textarea id="vxText" placeholder="ここだけの話…"></textarea>
     <div class="fl" style="margin-top:18px">写真 <small>最大3枚</small></div>
     <div class="card" style="padding:13px"><button id="vPbtn">＋ 写真を追加（0/3）</button><input type="file" id="vPfile" accept="image/*" multiple hidden><div id="vxPhotos" class="photos"></div></div>
     <div class="fl" style="margin-top:18px">音声 <small>最大5件・各15分まで</small></div>
     <div class="card" style="padding:13px"><button id="vRec">● 録音する</button><div id="vAud"></div>
-      <div class="note">音声はこのアプリの中だけに暗号化して保存します（スマホの録音アプリには保存されません）。録音中は画面を閉じないでください。</div></div>
+      <div class="note">音声はこのアプリの中だけに暗号化して保存します（スマホの録音アプリには保存されません）。録音を始めると画面が真っ黒になります。止めるときは画面をタップして、出てきたボタンを押してください。</div></div>
     <button class="pri" id="vDone" style="display:block;width:100%;min-height:56px;font-size:calc(16px*var(--fs));border-radius:17px;margin-top:22px">✓ 完了</button>
     <button class="danger" id="vDel" style="display:block;margin:14px auto 0">この日記を削除</button>
     <div class="note" style="text-align:center">入力内容は暗号化して自動で保存されます。</div>
   </div>
  </div>
 </div>
+
+<div id="vBlack" hidden><div class="ctl"><span id="vBlackT"></span><button id="vBlackStop">■ 録音を止める</button></div></div>
 
 <div id="lb" hidden><img id="lbimg" alt=""></div>
 <div id="msg"><span></span></div>
@@ -516,12 +529,12 @@ const delE=async d=>{
 const allE=()=>tx("readonly",s=>s.getAll());
 
 // ---- state ----
-const blank=date=>({date,mood:0,text:"",photos:[],wcode:null,wtext:"",tmax:null,tmin:null,steps:null,weight:null,updated:""});
+const blank=date=>({date,mood:0,text:"",photos:[],audios:[],wcode:null,wtext:"",tmax:null,tmin:null,steps:null,weight:null,updated:""});
 let cur=blank(""), mode="view", tm, urls=[], lbUrl=null;
 let entryMap={}, calYM=new Date(Date.now()+9*3600e3).toISOString().slice(0,7);
 const ymd=d=>{const z=new Date(d.getTime()-d.getTimezoneOffset()*60000);return z.toISOString().slice(0,10)};
 const fmt=d=>new Date(d+"T00:00:00").toLocaleDateString("ja-JP",{year:"numeric",month:"long",day:"numeric",weekday:"short"});
-const isEmpty=e=>!(e.text||"").trim()&&!e.mood&&!e.photos.length&&e.steps==null&&e.weight==null;
+const isEmpty=e=>!(e.text||"").trim()&&!e.mood&&!e.photos.length&&!(e.audios||[]).length&&e.steps==null&&e.weight==null;
 const toast=m=>{const s=$("msg").firstElementChild;s.textContent=m;s.style.display="inline-block";setTimeout(()=>s.style.display="none",Math.min(7000,1800+m.length*80))};
 
 // ---- lightbox ----
@@ -630,7 +643,7 @@ async function renderSum(){
     const hd=document.createElement("div");hd.className="ec-top";
     const l=document.createElement("span");l.className="ec-mood";l.innerHTML=MI(x.mood)||"📖";
     const r=document.createElement("span");r.className="ec-meta";
-    r.textContent=[x.wcode==null?"":`${WICON(x.wcode)} ${x.wtext||""}`,x.steps!=null?`👣${Number(x.steps).toLocaleString()}`:"",x.weight!=null?`⚖️${x.weight}kg`:""].filter(Boolean).join(" · ");
+    r.textContent=[x.wcode==null?"":`${WICON(x.wcode)} ${x.wtext||""}`,(x.audios&&x.audios.length)?"🎙":"",x.steps!=null?`👣${Number(x.steps).toLocaleString()}`:"",x.weight!=null?`⚖️${x.weight}kg`:""].filter(Boolean).join(" · ");
     hd.append(l,r);hd.onclick=()=>{load(x.date);scrollTo(0,0)};
     main.appendChild(hd);
     if((x.text||"").trim()){const t=document.createElement("p");t.className="ec-text";t.textContent=x.text;main.appendChild(t)}
@@ -644,6 +657,14 @@ async function renderSum(){
         w.appendChild(im);g.appendChild(w);
       });
       main.appendChild(g);
+    }
+    if(x.audios&&x.audios.length){
+      x.audios.forEach(b=>{
+        const r2=document.createElement("div");r2.className="aud";
+        const au=document.createElement("audio");au.controls=true;au.preload="metadata";
+        const u=URL.createObjectURL(b);urls.push(u);au.src=u;fixDur(au);
+        r2.appendChild(au);main.appendChild(r2);
+      });
     }
     const row=document.createElement("div");
     row.className="ec-act";
@@ -787,6 +808,59 @@ async function renderChart(){
     `<div class="ct"><span>気分${unit}</span><small>${mSub}</small></div><div class="card cc">${chartSvg("line",mb,{moodAxis:true})}</div>`;
 }
 
+// ---- 音声（表の日記：暗号化なし） ----
+const AEXT=t=>/mp4/.test(t||"")?"m4a":/ogg/.test(t||"")?"ogg":"webm";
+const AMIME={webm:"audio/webm",m4a:"audio/mp4",ogg:"audio/ogg"};
+const audioNames=e=>(e.audios||[]).map((b,i)=>`audio_${e.date}_${i+1}.${AEXT(b.type)}`);
+function fixDur(au){ // 録音ファイルの長さが無限大と出る場合の対策
+  au.addEventListener("loadedmetadata",()=>{
+    if(au.duration===Infinity){au.currentTime=1e101;au.addEventListener("timeupdate",function f(){au.removeEventListener("timeupdate",f);au.currentTime=0})}
+  });
+}
+function audioList(box,editable){
+  box.innerHTML="";
+  (cur.audios||[]).forEach((b,i)=>{
+    const row=document.createElement("div");row.className="aud";
+    const au=document.createElement("audio");au.controls=true;au.preload="metadata";
+    const u=URL.createObjectURL(b);urls.push(u);au.src=u;fixDur(au);
+    row.appendChild(au);
+    if(editable){
+      const x=document.createElement("button");x.textContent="×";x.setAttribute("aria-label","音声を削除");
+      x.onclick=()=>{if(!confirm("この音声を削除しますか？"))return;cur.audios.splice(i,1);render();save(true)};
+      row.appendChild(x);
+    }
+    box.appendChild(row);
+  });
+}
+let arec=null;
+async function aRecStart(){
+  if(arec)return;
+  if((cur.audios||[]).length>=5)return toast("音声は5件までです");
+  if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder))return toast("この環境では録音できません");
+  let stream;
+  try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){return toast("マイクの使用を許可してください")}
+  const types=["audio/webm;codecs=opus","audio/webm","audio/mp4","audio/ogg;codecs=opus"];
+  const mt=types.find(t=>MediaRecorder.isTypeSupported(t))||"";
+  const mr=new MediaRecorder(stream,mt?{mimeType:mt,audioBitsPerSecond:32000}:{audioBitsPerSecond:32000});
+  const chunks=[];mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+  const t0=Date.now(),r={mr,stream};
+  r.done=new Promise(res=>{mr.onstop=()=>{stream.getTracks().forEach(t=>t.stop());res(new Blob(chunks,{type:mr.mimeType||mt||"audio/webm"}))}});
+  const f2=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,"0")}`;
+  const upd=()=>{$("arec").textContent=`■ 停止（${f2((Date.now()-t0)/1000)}）`};
+  r.timer=setInterval(()=>{upd();if(Date.now()-t0>=900000)aRecStop()},500);
+  arec=r;upd();$("arec").classList.add("rec");
+  mr.start(1000);vWakeOn();
+}
+async function aRecStop(){
+  const r=arec;if(!r)return;
+  arec=null;clearInterval(r.timer);vWakeOff();
+  $("arec").textContent="● 録音する";$("arec").classList.remove("rec");
+  if(r.mr.state!=="inactive")r.mr.stop();
+  const blob=await r.done;
+  if(blob.size>0){cur.audios.push(blob);render();await save(true);toast("録音を追加しました")}
+}
+$("arec").onclick=()=>{arec?aRecStop():aRecStart()};
+
 // ---- render ----
 function photoGrid(box,editable){
   box.innerHTML="";
@@ -835,12 +909,14 @@ function render(){
     $("vText").textContent=cur.text||"";
     $("vText").hidden=!(cur.text||"").trim();
     photoGrid($("vPhotos"),false);
+    audioList($("vAudios"),false);
     renderCal();
   }else{
     $("eDate").value=cur.date;$("eDate").max=ymd(new Date());
     $("weather").textContent=cur.wcode==null?"天気：未取得":wtxt;
     document.querySelectorAll("#editScreen .moods button").forEach(b=>b.classList.toggle("on",+b.dataset.m===cur.mood));
     photoGrid($("photos"),true);
+    audioList($("aedit"),true);
     $("pbtn").textContent=`📷 写真を追加（${cur.photos.length}/3）`;
   }
 }
@@ -851,6 +927,7 @@ async function load(date){
   cur=e?{...e}:blank(date);
   if(!cur.photos)cur.photos=cur.photo?[cur.photo]:[]; // 旧データ(1枚)を引き継ぐ
   delete cur.photo;
+  if(!cur.audios)cur.audios=[];
   mode="view";
   calYM=date.slice(0,7);
   render();
@@ -927,7 +1004,7 @@ async function refreshList(){
     d.querySelector("strong").textContent=dd.getDate();
     d.querySelector("small").textContent=`${dd.getMonth()+1}月 ${WD[dd.getDay()]}`;
     d.querySelector(".ec-mood").innerHTML=MI(e.mood)||"📖";
-    d.querySelector(".ec-meta").textContent=[e.wcode==null?"":WICON(e.wcode),hasPhoto?"📷":"",e.steps!=null?`👣${Number(e.steps).toLocaleString()}`:"",e.weight!=null?`⚖️${e.weight}kg`:""].filter(Boolean).join(" ");
+    d.querySelector(".ec-meta").textContent=[e.wcode==null?"":WICON(e.wcode),hasPhoto?"📷":"",(e.audios&&e.audios.length)?"🎙":"",e.steps!=null?`👣${Number(e.steps).toLocaleString()}`:"",e.weight!=null?`⚖️${e.weight}kg`:""].filter(Boolean).join(" ");
     d.querySelector(".ec-text").textContent=(e.text||"").trim()||"（本文なし）";
     d.onclick=()=>{load(e.date);scrollTo(0,0)};
     $("list").appendChild(d);
@@ -935,7 +1012,7 @@ async function refreshList(){
 }
 
 // ---- CSV ----
-const COLS=["date","mood","weather_code","weather_text","temp_max","temp_min","text","photo_file","updated_at","steps","weight_kg"];
+const COLS=["date","mood","weather_code","weather_text","temp_max","temp_min","text","photo_file","updated_at","steps","weight_kg","audio_file"];
 const q=v=>{v=v==null?"":String(v);return /[",\n\r]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
 function parseCSV(s){
   const rows=[];let r=[],f="",inq=false;
@@ -953,7 +1030,7 @@ function parseCSV(s){
 async function exportCSV(){
   const a=(await allE()).sort((x,y)=>x.date.localeCompare(y.date));
   const lines=[COLS.join(",")];
-  a.forEach(e=>lines.push([e.date,e.mood,e.wcode,e.wtext,e.tmax,e.tmin,e.text,(e.photos||(e.photo?[e.photo]:[])).map((_,i)=>`photo_${e.date}_${i+1}.jpg`).join(";"),e.updated,e.steps,e.weight].map(q).join(",")));
+  a.forEach(e=>lines.push([e.date,e.mood,e.wcode,e.wtext,e.tmax,e.tmin,e.text,(e.photos||(e.photo?[e.photo]:[])).map((_,i)=>`photo_${e.date}_${i+1}.jpg`).join(";"),e.updated,e.steps,e.weight,audioNames(e).join(";")].map(q).join(",")));
   const blob=new Blob(["﻿"+lines.join("\n")],{type:"text/csv"});
   const u=document.createElement("a");u.href=URL.createObjectURL(blob);u.download="journal.csv";u.click();
   toast("CSVを書き出しました");
@@ -967,7 +1044,7 @@ async function importCSV(file){
     if(o.deleted==="1")continue;
     const old=await getE(o.date);
     if(old&&old.updated&&o.updated_at&&old.updated>=o.updated_at)continue; // 新しい方を優先
-    await putE({date:o.date,mood:+o.mood||0,text:o.text||"",photos:old?(old.photos||(old.photo?[old.photo]:[])):[],
+    await putE({date:o.date,mood:+o.mood||0,text:o.text||"",photos:old?(old.photos||(old.photo?[old.photo]:[])):[],audios:old&&old.audios?old.audios:[],
       wcode:o.weather_code===""?null:+o.weather_code,wtext:o.weather_text||"",
       tmax:o.temp_max===""?null:+o.temp_max,tmin:o.temp_min===""?null:+o.temp_min,steps:o.steps?+o.steps:null,weight:o.weight_kg?+o.weight_kg:null,updated:o.updated_at||""});
     n++;
@@ -986,12 +1063,12 @@ const photoNames=e=>(e.photos||[]).map((_,i)=>`photo_${e.date}_${i+1}.jpg`);
 const rowToEntry=o=>({date:o.date,mood:+o.mood||0,text:o.text||"",photos:[],
   wcode:o.weather_code?+o.weather_code:null,wtext:o.weather_text||"",
   tmax:o.temp_max?+o.temp_max:null,tmin:o.temp_min?+o.temp_min:null,
-  steps:o.steps?+o.steps:null,weight:o.weight_kg?+o.weight_kg:null,updated:o.updated_at||""});
+  steps:o.steps?+o.steps:null,weight:o.weight_kg?+o.weight_kg:null,updated:o.updated_at||"",audios:[]});
 function buildCSV(entries,tm){
   const lines=[COLS_D.join(",")];
   Object.values(entries).sort((x,y)=>x.date.localeCompare(y.date)).forEach(e=>
-    lines.push([e.date,e.mood,e.wcode,e.wtext,e.tmax,e.tmin,e.text,photoNames(e).join(";"),e.updated,e.steps,e.weight,""].map(q).join(",")));
-  Object.keys(tm).sort().forEach(d=>lines.push([d,"","","","","","","",tm[d],"","","1"].map(q).join(",")));
+    lines.push([e.date,e.mood,e.wcode,e.wtext,e.tmax,e.tmin,e.text,photoNames(e).join(";"),e.updated,e.steps,e.weight,audioNames(e).join(";"),""].map(q).join(",")));
+  Object.keys(tm).sort().forEach(d=>lines.push([d,"","","","","","","",tm[d],"","","","1"].map(q).join(",")));
   return lines.join("\n");
 }
 function loadGsi(){
@@ -1087,6 +1164,17 @@ async function uploadPhotos(fid,e,files){
       delete files[n];
     }
   }
+  const an=audioNames(e);
+  for(let i=0;i<an.length;i++){
+    files[an[i]]=await uploadFile(fid,an[i],e.audios[i],AMIME[an[i].split(".").pop()]||"audio/webm",files[an[i]]);
+  }
+  const apre=`audio_${e.date}_`;
+  for(const n of Object.keys(files)){ // 減った音声もドライブから消す
+    if(n.startsWith(apre)&&!an.includes(n)){
+      await gapi(`${D}/files/${files[n]}`,{method:"DELETE"});
+      delete files[n];
+    }
+  }
 }
 function showLast(up,down){
   const iso=localStorage.getItem("glast");
@@ -1110,11 +1198,11 @@ async function syncDrive(silent){
         if(!r[0])return;
         const o=Object.fromEntries(h.map((k,i)=>[k,r[i]]));
         if(o.deleted==="1")rtomb[o.date]=o.updated_at||"";
-        else remote[o.date]={e:rowToEntry(o),n:(o.photo_file||"").split(";").filter(Boolean).length};
+        else remote[o.date]={e:rowToEntry(o),n:(o.photo_file||"").split(";").filter(Boolean).length,an:(o.audio_file||"").split(";").filter(Boolean)};
       });
     }
     const local={};
-    (await allE()).forEach(e=>{if(!e.photos)e.photos=e.photo?[e.photo]:[];delete e.photo;local[e.date]=e});
+    (await allE()).forEach(e=>{if(!e.photos)e.photos=e.photo?[e.photo]:[];if(!e.audios)e.audios=[];delete e.photo;local[e.date]=e});
     const lt=tombs();
     const finalE={},finalT={};
     let up=0,down=0,dirty=false;
@@ -1122,7 +1210,7 @@ async function syncDrive(silent){
     for(let i=0;i<dates.length;i++){
       const d=dates[i];
       const L=local[d]?{e:local[d],t:local[d].updated||""}:(lt[d]!=null?{t:lt[d]}:null);
-      const R=remote[d]?{e:remote[d].e,n:remote[d].n,t:remote[d].e.updated}:(rtomb[d]!=null?{t:rtomb[d]}:null);
+      const R=remote[d]?{e:remote[d].e,n:remote[d].n,an:remote[d].an,t:remote[d].e.updated}:(rtomb[d]!=null?{t:rtomb[d]}:null);
       if(L&&(!R||L.t>=R.t)){            // ローカルが新しい（または同じ）
         if(L.e){
           finalE[d]=L.e;
@@ -1140,6 +1228,10 @@ async function syncDrive(silent){
         for(let k=1;k<=R.n;k++){
           const id=files[`photo_${d}_${k}.jpg`];
           if(id)e.photos.push(await dl(id));
+        }
+        for(const nm of R.an||[]){
+          const id=files[nm];
+          if(id){const bl=await dl(id);e.audios.push(new Blob([bl],{type:AMIME[nm.split(".").pop()]||"audio/webm"}))}
         }
         await tx("readwrite",s=>s.put(e));
         finalE[d]=e;down++;
@@ -1367,6 +1459,7 @@ $("pfile").onchange=async e=>{
   render();save(true);
 };
 $("done").onclick=async()=>{
+  await aRecStop();
   clearTimeout(tm);
   await save(true);
   const back=backToSum;backToSum=false;
@@ -1480,7 +1573,7 @@ function vList(){
   const box=$("vList");box.innerHTML="";
   if(!V.items.length){box.innerHTML='<div class="card empty">まだひみつの日記はありません。</div>';return}
   V.items.forEach(it=>{
-    const c=listCard({date:it.date,mood:it.mood,text:it.text,photos:it.photos,audios:it.audios},3);
+    const c=listCard({date:it.date,mood:0,text:it.text,photos:it.photos,audios:it.audios},3);
     c.onclick=()=>vEdit(it);
     box.appendChild(c);
   });
@@ -1497,10 +1590,9 @@ function vPaint(){
     d.append(im,x);box.appendChild(d);
   });
   $("vPbtn").textContent=`＋ 写真を追加（${V.cur.photos.length}/3）`;
-  document.querySelectorAll("#vMoods button").forEach(b=>b.classList.toggle("on",+b.dataset.m===V.cur.mood));
-}
+  }
 async function vEdit(it){
-  const cur={id:it?it.id:crypto.randomUUID(),isNew:!it,date:it?it.date:ymd(new Date()),mood:it?it.mood:0,text:it?it.text:"",photos:[],audios:[],updated:""};
+  const cur={id:it?it.id:crypto.randomUUID(),isNew:!it,date:it?it.date:ymd(new Date()),mood:0,text:it?it.text:"",photos:[],audios:[],updated:""};
   if(it){for(const ph of it.photos){const raw=await vDec(ph);cur.photos.push({blob:new Blob([raw],{type:ph.type||"image/jpeg"}),type:ph.type||"image/jpeg",enc:ph})}
     for(const au of it.audios||[]){const raw=await vDec(au);cur.audios.push({blob:new Blob([raw],{type:au.type||"audio/webm"}),type:au.type||"audio/webm",dur:au.dur||0,enc:au})}}
   V.cur=cur;
@@ -1508,7 +1600,7 @@ async function vEdit(it){
   $("vDel").hidden=!it;
   vShow("vEdit");vPaint();$("vault").scrollTop=0;
 }
-const vBlank=c=>!(c.text||"").trim()&&!c.mood&&!c.photos.length&&!c.audios.length;
+const vBlank=c=>!(c.text||"").trim()&&!c.photos.length&&!c.audios.length;
 async function vSaveCur(){
   clearTimeout(V.tm);
   const c=V.cur;if(!c||!V.key)return;
@@ -1587,6 +1679,24 @@ function vAudPaint(){
     row.append(au,lb,x);box.appendChild(row);
   });
 }
+let vWake=null, vBlackTm=0;
+async function vWakeOn(){try{if(navigator.wakeLock)vWake=await navigator.wakeLock.request("screen")}catch(e){}}
+function vWakeOff(){try{if(vWake){vWake.release();vWake=null}}catch(e){}}
+function vBlackOn(){
+  $("vBlack").hidden=false;$("vBlack").classList.remove("show");
+  const m=document.querySelector('meta[name="theme-color"]');if(m){m.dataset.prev=m.content;m.content="#000000"}
+  vWakeOn();
+}
+function vBlackOff(){
+  $("vBlack").hidden=true;clearTimeout(vBlackTm);
+  const m=document.querySelector('meta[name="theme-color"]');if(m&&m.dataset.prev)m.content=m.dataset.prev;
+  vWakeOff();
+}
+$("vBlack").onclick=e=>{
+  if(e.target.id==="vBlackStop")return;
+  $("vBlack").classList.add("show");clearTimeout(vBlackTm);vBlackTm=setTimeout(()=>$("vBlack").classList.remove("show"),3000);
+};
+$("vBlackStop").onclick=()=>vRecStop();
 async function vRecStart(){
   if(V.rec)return;
   if(!V.cur)return;
@@ -1604,14 +1714,15 @@ async function vRecStart(){
     stream.getTracks().forEach(t=>t.stop());
     res({blob:new Blob(chunks,{type:mr.mimeType||mt||"audio/webm"}),dur:(Date.now()-t0)/1000});
   }});
-  const upd=()=>{$("vRec").textContent=`■ 停止（${fmtDur((Date.now()-t0)/1000)}）`};
+  const upd=()=>{const t=fmtDur((Date.now()-t0)/1000);$("vRec").textContent=`■ 停止（${t}）`;$("vBlackT").textContent="録音中 "+t};
   r.timer=setInterval(()=>{upd();if(Date.now()-t0>=900000)vRecStop()},500);
   V.rec=r;upd();$("vRec").classList.add("rec");
   mr.start(1000);
+  vBlackOn();
 }
 async function vRecStop(){
   const r=V.rec;if(!r)return;
-  V.rec=null;clearInterval(r.timer);
+  V.rec=null;clearInterval(r.timer);vBlackOff();
   $("vRec").textContent="● 録音する";$("vRec").classList.remove("rec");
   if(r.mr.state!=="inactive")r.mr.stop();
   const {blob,dur}=await r.done;
@@ -1642,7 +1753,6 @@ $("vDel").onclick=async()=>{
 };
 $("vxText").oninput=vQueue;
 $("vDateIn").onchange=vQueue;
-document.querySelectorAll("#vMoods button").forEach(b=>b.onclick=()=>{const m=+b.dataset.m;V.cur.mood=V.cur.mood===m?0:m;vPaint();vQueue()});
 $("vPbtn").onclick=()=>{if(V.cur.photos.length>=3)return toast("写真は3枚までです");$("vPfile").click()};
 $("vPfile").onchange=async e=>{
   const fs=[...e.target.files];e.target.value="";
@@ -1657,7 +1767,7 @@ $("vChange").onclick=()=>vForm("change");
 // アプリから離れて60秒以上たったら自動でロック
 document.addEventListener("visibilitychange",()=>{
   if(document.hidden){V.hiddenAt=Date.now()}
-  else if(V.key&&!V.rec&&Date.now()-V.hiddenAt>60000)vLock();
+  else{if(V.rec)vWakeOn();else if(V.key&&Date.now()-V.hiddenAt>60000)vLock()}
 });
 
 // ---- 永続ストレージ（ブラウザによる自動削除を防ぐ） ----
