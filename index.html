@@ -192,6 +192,10 @@ input[type=checkbox]#autoHealth{appearance:none;-webkit-appearance:none;width:44
 #vErr{color:#a15446;font-size:calc(13px*var(--fs));min-height:1.4em;margin:8px 2px}
 [data-theme="dark"] #vErr{color:#e0958d}
 #vault input[type=password]{width:100%;font-size:16px;padding:13px 14px;border-radius:13px;border:1px solid var(--line);background:var(--bg);color:var(--ink);margin-top:10px;outline-color:var(--acc)}
+.aud{display:flex;align-items:center;gap:8px;margin-top:10px}
+.aud audio{flex:1;min-width:0;height:40px}
+.aud button{padding:6px 11px}
+#vRec.rec{background:#a15446;color:#fff;border-color:#a15446;font-weight:700}
 /* 検索・グラフ・過去の今日 */
 .mfs{display:flex;gap:10px}
 .mfs button{padding:5px;border-radius:50%;line-height:0;border:2px solid transparent;background:transparent;opacity:.55}
@@ -463,6 +467,9 @@ input[type=checkbox]#autoHealth{appearance:none;-webkit-appearance:none;width:44
     <textarea id="vxText" placeholder="ここだけの話…"></textarea>
     <div class="fl" style="margin-top:18px">写真 <small>最大3枚</small></div>
     <div class="card" style="padding:13px"><button id="vPbtn">＋ 写真を追加（0/3）</button><input type="file" id="vPfile" accept="image/*" multiple hidden><div id="vxPhotos" class="photos"></div></div>
+    <div class="fl" style="margin-top:18px">音声 <small>最大5件・各15分まで</small></div>
+    <div class="card" style="padding:13px"><button id="vRec">● 録音する</button><div id="vAud"></div>
+      <div class="note">音声はこのアプリの中だけに暗号化して保存します（スマホの録音アプリには保存されません）。録音中は画面を閉じないでください。</div></div>
     <button class="pri" id="vDone" style="display:block;width:100%;min-height:56px;font-size:calc(16px*var(--fs));border-radius:17px;margin-top:22px">✓ 完了</button>
     <button class="danger" id="vDel" style="display:block;margin:14px auto 0">この日記を削除</button>
     <div class="note" style="text-align:center">入力内容は暗号化して自動で保存されます。</div>
@@ -674,7 +681,7 @@ function listCard(e,lines,yearsAgo){
   d.querySelector("strong").textContent=yearsAgo?yearsAgo:dd.getDate();
   d.querySelector("small").textContent=yearsAgo?"年前":`${dd.getMonth()+1}月 ${WD[dd.getDay()]}`;
   d.querySelector(".ec-mood").innerHTML=MI(e.mood)||"📖";
-  d.querySelector(".ec-meta").textContent=[yearsAgo?`${dd.getFullYear()}/${dd.getMonth()+1}/${dd.getDate()}`:`${dd.getFullYear()}年`,e.wcode==null?"":WICON(e.wcode),hasPhoto?"📷":"",e.steps!=null?`👣${Number(e.steps).toLocaleString()}`:"",e.weight!=null?`⚖️${e.weight}kg`:""].filter(Boolean).join(" ");
+  d.querySelector(".ec-meta").textContent=[yearsAgo?`${dd.getFullYear()}/${dd.getMonth()+1}/${dd.getDate()}`:`${dd.getFullYear()}年`,e.wcode==null?"":WICON(e.wcode),hasPhoto?"📷":"",(e.audios&&e.audios.length)?"🎙":"",e.steps!=null?`👣${Number(e.steps).toLocaleString()}`:"",e.weight!=null?`⚖️${e.weight}kg`:""].filter(Boolean).join(" ");
   const tx=d.querySelector(".ec-text");tx.textContent=(e.text||"").trim()||"（本文なし）";
   if(lines)tx.style.webkitLineClamp=String(lines);
   d.onclick=()=>{load(e.date);scrollTo(0,0)};
@@ -1374,7 +1381,7 @@ $("done").onclick=async()=>{
 // ================= ひみつの日記（パスワード＋AES-GCM暗号化） =================
 // ・通常の日記とは別のデータベースに保存。一覧・検索・グラフ・CSV・ドライブ同期には一切出ません。
 // ・パスワードから鍵を作り、鍵は画面メモリ上だけに置きます（保存しません）。
-const V={db:null,key:null,items:[],cur:null,tm:null,hiddenAt:0,urls:[],mode:"unlock"};
+const V={db:null,key:null,items:[],cur:null,tm:null,hiddenAt:0,urls:[],aurls:[],rec:null,mode:"unlock"};
 const VITER=400000, TE=new TextEncoder(), TD=new TextDecoder();
 let vTaps=[];
 const vdb=()=>V.db?Promise.resolve(V.db):new Promise((res,rej)=>{
@@ -1441,8 +1448,10 @@ async function vGo(){
         for(const it of V.items){
           const photos=[];
           for(const ph of it.photos){const raw=await vDec(ph);const e=await vEnc(raw,key);photos.push({iv:e.iv,ct:e.ct,type:ph.type})}
+          const audios=[];
+          for(const au of it.audios||[]){const raw=await vDec(au);const e=await vEnc(raw,key);audios.push({iv:e.iv,ct:e.ct,type:au.type,dur:au.dur})}
           const m=await vEnc(TE.encode(JSON.stringify({date:it.date,mood:it.mood,text:it.text,updated:it.updated})),key);
-          recs.push({id:it.id,m,p:photos});
+          recs.push({id:it.id,m,p:photos,a:audios});
         }
         const db=await vdb();
         await new Promise((res,rej)=>{
@@ -1461,7 +1470,7 @@ async function vLoad(){
   const recs=await vtx("items","readonly",s=>s.getAll());
   const out=[];
   for(const r of recs){
-    try{const m=JSON.parse(TD.decode(await vDec(r.m)));out.push({id:r.id,...m,photos:r.p||[]})}catch(e){}
+    try{const m=JSON.parse(TD.decode(await vDec(r.m)));out.push({id:r.id,...m,photos:r.p||[],audios:r.a||[]})}catch(e){}
   }
   V.items=out.sort((a,b)=>(b.date.localeCompare(a.date))||((b.updated||"").localeCompare(a.updated||"")));
 }
@@ -1471,7 +1480,7 @@ function vList(){
   const box=$("vList");box.innerHTML="";
   if(!V.items.length){box.innerHTML='<div class="card empty">まだひみつの日記はありません。</div>';return}
   V.items.forEach(it=>{
-    const c=listCard({date:it.date,mood:it.mood,text:it.text,photos:it.photos},3);
+    const c=listCard({date:it.date,mood:it.mood,text:it.text,photos:it.photos,audios:it.audios},3);
     c.onclick=()=>vEdit(it);
     box.appendChild(c);
   });
@@ -1491,14 +1500,15 @@ function vPaint(){
   document.querySelectorAll("#vMoods button").forEach(b=>b.classList.toggle("on",+b.dataset.m===V.cur.mood));
 }
 async function vEdit(it){
-  const cur={id:it?it.id:crypto.randomUUID(),isNew:!it,date:it?it.date:ymd(new Date()),mood:it?it.mood:0,text:it?it.text:"",photos:[],updated:""};
-  if(it){for(const ph of it.photos){const raw=await vDec(ph);cur.photos.push({blob:new Blob([raw],{type:ph.type||"image/jpeg"}),type:ph.type||"image/jpeg",enc:ph})}}
+  const cur={id:it?it.id:crypto.randomUUID(),isNew:!it,date:it?it.date:ymd(new Date()),mood:it?it.mood:0,text:it?it.text:"",photos:[],audios:[],updated:""};
+  if(it){for(const ph of it.photos){const raw=await vDec(ph);cur.photos.push({blob:new Blob([raw],{type:ph.type||"image/jpeg"}),type:ph.type||"image/jpeg",enc:ph})}
+    for(const au of it.audios||[]){const raw=await vDec(au);cur.audios.push({blob:new Blob([raw],{type:au.type||"audio/webm"}),type:au.type||"audio/webm",dur:au.dur||0,enc:au})}}
   V.cur=cur;
-  $("vDateIn").value=cur.date;$("vDateIn").max=ymd(new Date());$("vxText").value=cur.text;
+  $("vDateIn").value=cur.date;vAudPaint();$("vDateIn").max=ymd(new Date());$("vxText").value=cur.text;
   $("vDel").hidden=!it;
   vShow("vEdit");vPaint();$("vault").scrollTop=0;
 }
-const vBlank=c=>!(c.text||"").trim()&&!c.mood&&!c.photos.length;
+const vBlank=c=>!(c.text||"").trim()&&!c.mood&&!c.photos.length&&!c.audios.length;
 async function vSaveCur(){
   clearTimeout(V.tm);
   const c=V.cur;if(!c||!V.key)return;
@@ -1513,20 +1523,25 @@ async function vSaveCur(){
     if(!p.enc){const raw=new Uint8Array(await p.blob.arrayBuffer());const e=await vEnc(raw);p.enc={iv:e.iv,ct:e.ct,type:p.type}}
     photos.push(p.enc);
   }
+  const audios=[];
+  for(const a of c.audios){
+    if(!a.enc){const raw=new Uint8Array(await a.blob.arrayBuffer());const e=await vEnc(raw);a.enc={iv:e.iv,ct:e.ct,type:a.type,dur:a.dur}}
+    audios.push(a.enc);
+  }
   const m=await vEnc(TE.encode(JSON.stringify({date:c.date,mood:c.mood,text:c.text,updated:c.updated})));
-  await vtx("items","readwrite",s=>s.put({id:c.id,m,p:photos}));
-  const item={id:c.id,date:c.date,mood:c.mood,text:c.text,updated:c.updated,photos};
+  await vtx("items","readwrite",s=>s.put({id:c.id,m,p:photos,a:audios}));
+  const item={id:c.id,date:c.date,mood:c.mood,text:c.text,updated:c.updated,photos,audios};
   V.items=[item,...V.items.filter(x=>x.id!==c.id)].sort((a,b)=>(b.date.localeCompare(a.date))||((b.updated||"").localeCompare(a.updated||"")));
   $("vDel").hidden=false;
 }
 const vQueue=()=>{clearTimeout(V.tm);V.tm=setTimeout(()=>vSaveCur().catch(()=>toast("保存できませんでした")),1500)};
-async function vFlush(){try{if(V.cur&&!$("vEdit").hidden)await vSaveCur()}catch(e){}}
+async function vFlush(){try{await vRecStop();if(V.cur&&!$("vEdit").hidden)await vSaveCur()}catch(e){}}
 async function vLock(){
   await vFlush();
   clearTimeout(V.tm);
   V.key=null;V.items=[];V.cur=null;
-  V.urls.forEach(u=>URL.revokeObjectURL(u));V.urls=[];
-  $("vxText").value="";$("vxPhotos").innerHTML="";$("vList").innerHTML="";$("vPw").value="";$("vPw2").value="";
+  V.urls.forEach(u=>URL.revokeObjectURL(u));V.urls=[];V.aurls.forEach(u=>URL.revokeObjectURL(u));V.aurls=[];
+  $("vAud").innerHTML="";$("vxText").value="";$("vxPhotos").innerHTML="";$("vList").innerHTML="";$("vPw").value="";$("vPw2").value="";
   $("vault").hidden=true;
 }
 const b64=u8=>{let s="";const a=new Uint8Array(u8);for(let i=0;i<a.length;i+=0x8000)s+=String.fromCharCode.apply(null,a.subarray(i,i+0x8000));return btoa(s)};
@@ -1535,7 +1550,7 @@ async function vExport(){
   const meta=await vtx("meta","readonly",s=>s.get("v"));
   const items=await vtx("items","readonly",s=>s.getAll());
   const enc=o=>({iv:b64(o.iv),ct:b64(o.ct)});
-  const data={v:1,meta:{salt:b64(meta.salt),iter:meta.iter,ver:enc(meta.ver)},items:items.map(r=>({id:r.id,m:enc(r.m),p:(r.p||[]).map(x=>({...enc(x),type:x.type}))}))};
+  const data={v:1,meta:{salt:b64(meta.salt),iter:meta.iter,ver:enc(meta.ver)},items:items.map(r=>({id:r.id,m:enc(r.m),p:(r.p||[]).map(x=>({...enc(x),type:x.type})),a:(r.a||[]).map(x=>({...enc(x),type:x.type,dur:x.dur}))}))};
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:"application/json"}));
   a.download=`backup-${ymd(new Date()).replace(/-/g,"")}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);
   toast("暗号化バックアップを書き出しました");
@@ -1547,7 +1562,7 @@ async function vImport(file){
     if(!confirm("いまのひみつの日記は、このバックアップの内容に入れ替わります。よろしいですか？"))return;
     const dec=o=>({iv:unb64(o.iv),ct:unb64(o.ct)});
     const meta={salt:unb64(d.meta.salt),iter:d.meta.iter,ver:dec(d.meta.ver)};
-    const recs=d.items.map(r=>({id:r.id,m:dec(r.m),p:(r.p||[]).map(x=>({...dec(x),type:x.type}))}));
+    const recs=d.items.map(r=>({id:r.id,m:dec(r.m),p:(r.p||[]).map(x=>({...dec(x),type:x.type})),a:(r.a||[]).map(x=>({...dec(x),type:x.type,dur:x.dur}))}));
     const db=await vdb();
     await new Promise((res,rej)=>{
       const t=db.transaction(["meta","items"],"readwrite");
@@ -1557,6 +1572,53 @@ async function vImport(file){
     V.key=null;V.items=[];vForm("unlock");toast("読み込みました。バックアップのパスワードで開いてください");
   }catch(e){toast("読み込めませんでした："+e.message)}
 }
+// ---- 音声（録音→暗号化して保存。端末の録音アプリとは別の場所＝このアプリ内だけ） ----
+const fmtDur=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,"0")}`;
+function vAudPaint(){
+  V.aurls.forEach(u=>URL.revokeObjectURL(u));V.aurls=[];
+  const box=$("vAud");box.innerHTML="";
+  (V.cur?V.cur.audios:[]).forEach((a,i)=>{
+    const row=document.createElement("div");row.className="aud";
+    const au=document.createElement("audio");au.controls=true;au.preload="metadata";
+    const u=URL.createObjectURL(a.blob);V.aurls.push(u);au.src=u;
+    const lb=document.createElement("span");lb.className="sub";lb.style.fontSize="12px";lb.textContent=fmtDur(a.dur||0);
+    const x=document.createElement("button");x.textContent="×";x.setAttribute("aria-label","音声を削除");
+    x.onclick=()=>{if(!confirm("この音声を削除しますか？"))return;V.cur.audios.splice(i,1);vAudPaint();vQueue()};
+    row.append(au,lb,x);box.appendChild(row);
+  });
+}
+async function vRecStart(){
+  if(V.rec)return;
+  if(!V.cur)return;
+  if(V.cur.audios.length>=5)return toast("音声は5件までです");
+  if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder))return toast("この環境では録音できません");
+  let stream;
+  try{stream=await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){return toast("マイクの使用を許可してください")}
+  const types=["audio/webm;codecs=opus","audio/webm","audio/mp4","audio/ogg;codecs=opus"];
+  const mt=types.find(t=>MediaRecorder.isTypeSupported(t))||"";
+  const mr=new MediaRecorder(stream,mt?{mimeType:mt,audioBitsPerSecond:32000}:{audioBitsPerSecond:32000});
+  const chunks=[];mr.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
+  const t0=Date.now();
+  const r={mr,stream,t0};
+  r.done=new Promise(res=>{mr.onstop=()=>{
+    stream.getTracks().forEach(t=>t.stop());
+    res({blob:new Blob(chunks,{type:mr.mimeType||mt||"audio/webm"}),dur:(Date.now()-t0)/1000});
+  }});
+  const upd=()=>{$("vRec").textContent=`■ 停止（${fmtDur((Date.now()-t0)/1000)}）`};
+  r.timer=setInterval(()=>{upd();if(Date.now()-t0>=900000)vRecStop()},500);
+  V.rec=r;upd();$("vRec").classList.add("rec");
+  mr.start(1000);
+}
+async function vRecStop(){
+  const r=V.rec;if(!r)return;
+  V.rec=null;clearInterval(r.timer);
+  $("vRec").textContent="● 録音する";$("vRec").classList.remove("rec");
+  if(r.mr.state!=="inactive")r.mr.stop();
+  const {blob,dur}=await r.done;
+  if(blob.size>0&&V.cur){V.cur.audios.push({blob,type:blob.type,dur:Math.round(dur)});vAudPaint();vQueue();toast("録音を追加しました")}
+}
+$("vRec").onclick=()=>{V.rec?vRecStop():vRecStart()};
+
 // 入口：ロゴを2.5秒以内に5回タップ（メニューには出しません）
 $("brand").addEventListener("click",()=>{
   const now=Date.now();vTaps=vTaps.filter(t=>now-t<2500);vTaps.push(now);
@@ -1595,7 +1657,7 @@ $("vChange").onclick=()=>vForm("change");
 // アプリから離れて60秒以上たったら自動でロック
 document.addEventListener("visibilitychange",()=>{
   if(document.hidden){V.hiddenAt=Date.now()}
-  else if(V.key&&Date.now()-V.hiddenAt>60000)vLock();
+  else if(V.key&&!V.rec&&Date.now()-V.hiddenAt>60000)vLock();
 });
 
 // ---- 永続ストレージ（ブラウザによる自動削除を防ぐ） ----
