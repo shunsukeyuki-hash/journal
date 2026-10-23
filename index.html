@@ -446,7 +446,7 @@ input[type=checkbox]#autoHealth{appearance:none;-webkit-appearance:none;width:44
 <!-- ========== ひみつの日記（暗号化・入口はロゴの連打） ========== -->
 <div id="vault" hidden>
  <div class="vwrap">
-  <div class="vtop"><button id="vBack">‹ 戻る</button><b>🔒 ひみつの日記</b><button id="vLockBtn" aria-label="ロックして閉じる">閉じる</button></div>
+  <div class="vtop"><button id="vBack">‹ 戻る</button><b>アセスメント</b><button id="vLockBtn" aria-label="ロックして閉じる">閉じる</button></div>
 
   <div id="vForm">
     <div class="card">
@@ -460,7 +460,7 @@ input[type=checkbox]#autoHealth{appearance:none;-webkit-appearance:none;width:44
   </div>
 
   <div id="vListV" hidden>
-    <button class="pri" id="vAdd" style="width:100%;min-height:54px;font-size:calc(16px*var(--fs));border-radius:17px">＋ ひみつの日記を書く</button>
+    <button class="pri" id="vAdd" style="width:100%;min-height:54px;font-size:calc(16px*var(--fs));border-radius:17px">＋ アセスメントを書く</button>
     <div class="sec-title"><span id="vCount"></span></div>
     <div id="vList"></div>
     <div class="vtools">
@@ -468,6 +468,19 @@ input[type=checkbox]#autoHealth{appearance:none;-webkit-appearance:none;width:44
       <button id="vImport">バックアップを読み込む（いまの内容と入れ替え）</button>
       <input type="file" id="vFile" accept=".json,application/json" hidden>
       <button id="vChange">パスワードを変更する</button>
+    </div>
+  </div>
+
+  <div id="vView" hidden>
+    <div class="card">
+      <div id="vvDate" style="font-size:calc(22px*var(--fs));font-weight:700"></div>
+      <div id="vvText" style="white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.95;font-size:calc(16px*var(--fs));margin-top:14px"></div>
+      <div id="vvPhotos" class="photos"></div>
+      <div id="vvAud"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:6px">
+      <button class="pri" id="vvEdit" style="flex:1;min-height:50px">✏️ 編集</button>
+      <button class="danger" id="vvDel" style="flex:1;min-height:50px">🗑 削除</button>
     </div>
   </div>
 
@@ -1496,7 +1509,7 @@ async function vEnc(bytes,key){
   return {iv,ct};
 }
 const vDec=async(o,key)=>new Uint8Array(await crypto.subtle.decrypt({name:"AES-GCM",iv:new Uint8Array(o.iv)},key||V.key,new Uint8Array(o.ct)));
-const vShow=v=>{["vForm","vListV","vEdit"].forEach(id=>$(id).hidden=id!==v)};
+const vShow=v=>{["vForm","vListV","vView","vEdit"].forEach(id=>$(id).hidden=id!==v)};
 const vErr=m=>{$("vErr").textContent=m||""};
 
 async function vaultOpen(){
@@ -1513,7 +1526,7 @@ function vForm(mode){
   $("vPw2").hidden=!two;
   $("vFTitle").textContent=mode==="unlock"?"パスワードを入力":mode==="setup"?"はじめにパスワードを決めます":"新しいパスワード";
   $("vFNote").textContent=mode==="unlock"?"":mode==="setup"
-    ?"6文字以上。パスワードは保存されません。忘れると、ひみつの日記は誰にも（開発者にも）復元できません。":"6文字以上。変更後、すべての内容を新しいパスワードで暗号化し直します。";
+    ?"6文字以上。パスワードは保存されません。忘れると、アセスメントの内容は誰にも（開発者にも）復元できません。":"6文字以上。変更後、すべての内容を新しいパスワードで暗号化し直します。";
   $("vGo").textContent=mode==="unlock"?"開く":mode==="setup"?"決定して開く":"変更する";
   setTimeout(()=>$("vPw").focus(),50);
 }
@@ -1571,12 +1584,41 @@ function vList(){
   vShow("vListV");
   $("vCount").textContent=V.items.length?`${V.items.length}件`:"";
   const box=$("vList");box.innerHTML="";
-  if(!V.items.length){box.innerHTML='<div class="card empty">まだひみつの日記はありません。</div>';return}
+  if(!V.items.length){box.innerHTML='<div class="card empty">まだアセスメントはありません。</div>';return}
   V.items.forEach(it=>{
     const c=listCard({date:it.date,mood:0,text:it.text,photos:it.photos,audios:it.audios},3);
-    c.onclick=()=>vEdit(it);
+    c.onclick=()=>vView(it);
     box.appendChild(c);
   });
+}
+async function vView(it){
+  V.cur=null;V.view=it;
+  V.urls.forEach(u=>URL.revokeObjectURL(u));V.urls=[];V.aurls.forEach(u=>URL.revokeObjectURL(u));V.aurls=[];
+  $("vvDate").textContent=fmt(it.date);
+  const tx=(it.text||"").trim();
+  $("vvText").textContent=tx;$("vvText").hidden=!tx;
+  const pb=$("vvPhotos");pb.innerHTML="";
+  for(const ph of it.photos||[]){
+    const raw=await vDec(ph);const blob=new Blob([raw],{type:ph.type||"image/jpeg"});
+    const d=document.createElement("div");d.className="ph";
+    const u=URL.createObjectURL(blob);V.urls.push(u);
+    const im=document.createElement("img");im.src=u;im.onclick=()=>openLb(blob);
+    d.appendChild(im);pb.appendChild(d);
+  }
+  const ab=$("vvAud");ab.innerHTML="";
+  for(const a of it.audios||[]){
+    const raw=await vDec(a);const blob=new Blob([raw],{type:a.type||"audio/webm"});
+    const row=document.createElement("div");row.className="aud";
+    const au=document.createElement("audio");au.controls=true;au.preload="metadata";
+    const u=URL.createObjectURL(blob);V.aurls.push(u);au.src=u;
+    const lb=document.createElement("span");lb.className="sub";lb.style.fontSize="12px";lb.textContent=fmtDur(a.dur||0);
+    row.append(au,lb);ab.appendChild(row);
+  }
+  vShow("vView");$("vault").scrollTop=0;
+}
+function vAfterEdit(){
+  const it=V.back==="view"&&V.cur?V.items.find(x=>x.id===V.cur.id):null;
+  if(it)vView(it);else vList();
 }
 function vPaint(){
   V.urls.forEach(u=>URL.revokeObjectURL(u));V.urls=[];
@@ -1591,7 +1633,8 @@ function vPaint(){
   });
   $("vPbtn").textContent=`＋ 写真を追加（${V.cur.photos.length}/3）`;
   }
-async function vEdit(it){
+async function vEdit(it,fromView){
+  V.back=fromView?"view":"list";
   const cur={id:it?it.id:crypto.randomUUID(),isNew:!it,date:it?it.date:ymd(new Date()),mood:0,text:it?it.text:"",photos:[],audios:[],updated:""};
   if(it){for(const ph of it.photos){const raw=await vDec(ph);cur.photos.push({blob:new Blob([raw],{type:ph.type||"image/jpeg"}),type:ph.type||"image/jpeg",enc:ph})}
     for(const au of it.audios||[]){const raw=await vDec(au);cur.audios.push({blob:new Blob([raw],{type:au.type||"audio/webm"}),type:au.type||"audio/webm",dur:au.dur||0,enc:au})}}
@@ -1631,7 +1674,8 @@ async function vFlush(){try{await vRecStop();if(V.cur&&!$("vEdit").hidden)await 
 async function vLock(){
   await vFlush();
   clearTimeout(V.tm);
-  V.key=null;V.items=[];V.cur=null;
+  V.key=null;V.items=[];V.cur=null;V.view=null;
+  $("vvText").textContent="";$("vvPhotos").innerHTML="";$("vvAud").innerHTML="";
   V.urls.forEach(u=>URL.revokeObjectURL(u));V.urls=[];V.aurls.forEach(u=>URL.revokeObjectURL(u));V.aurls=[];
   $("vAud").innerHTML="";$("vxText").value="";$("vxPhotos").innerHTML="";$("vList").innerHTML="";$("vPw").value="";$("vPw2").value="";
   $("vault").hidden=true;
@@ -1651,7 +1695,7 @@ async function vImport(file){
   try{
     const d=JSON.parse(await file.text());
     if(d.v!==1||!d.meta||!Array.isArray(d.items))throw new Error("形式が違います");
-    if(!confirm("いまのひみつの日記は、このバックアップの内容に入れ替わります。よろしいですか？"))return;
+    if(!confirm("いまのアセスメントは、このバックアップの内容に入れ替わります。よろしいですか？"))return;
     const dec=o=>({iv:unb64(o.iv),ct:unb64(o.ct)});
     const meta={salt:unb64(d.meta.salt),iter:d.meta.iter,ver:dec(d.meta.ver)};
     const recs=d.items.map(r=>({id:r.id,m:dec(r.m),p:(r.p||[]).map(x=>({...dec(x),type:x.type})),a:(r.a||[]).map(x=>({...dec(x),type:x.type,dur:x.dur}))}));
@@ -1738,15 +1782,23 @@ $("brand").addEventListener("click",()=>{
 $("vGo").onclick=vGo;
 $("vPw").onkeydown=$("vPw2").onkeydown=e=>{if(e.key==="Enter")vGo()};
 $("vBack").onclick=async()=>{
-  if(!$("vEdit").hidden){await vFlush();vList();return}
+  if(!$("vView").hidden){V.view=null;vList();return}
+  if(!$("vEdit").hidden){await vFlush();vAfterEdit();return}
   if(!$("vForm").hidden&&V.key&&V.mode==="change"){vList();return}
   vLock();
 };
 $("vLockBtn").onclick=()=>vLock();
 $("vAdd").onclick=()=>vEdit(null);
-$("vDone").onclick=async()=>{await vFlush();vList()};
+$("vDone").onclick=async()=>{await vFlush();vAfterEdit()};
+$("vvEdit").onclick=()=>vEdit(V.view,true);
+$("vvDel").onclick=async()=>{
+  if(!confirm("このアセスメントを削除しますか？（元に戻せません）"))return;
+  const id=V.view.id;
+  await vtx("items","readwrite",s=>s.delete(id));
+  V.items=V.items.filter(x=>x.id!==id);V.view=null;vList();
+};
 $("vDel").onclick=async()=>{
-  if(!confirm("このひみつの日記を削除しますか？（元に戻せません）"))return;
+  if(!confirm("このアセスメントを削除しますか？（元に戻せません）"))return;
   clearTimeout(V.tm);
   await vtx("items","readwrite",s=>s.delete(V.cur.id));
   V.items=V.items.filter(x=>x.id!==V.cur.id);V.cur=null;vList();
